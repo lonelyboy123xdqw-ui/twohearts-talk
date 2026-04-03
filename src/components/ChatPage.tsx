@@ -26,7 +26,11 @@ export default function ChatPage() {
   const [profiles, setProfiles] = useState<Record<string, string>>({});
   const [newMsg, setNewMsg] = useState("");
   const [sending, setSending] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch profiles
   useEffect(() => {
