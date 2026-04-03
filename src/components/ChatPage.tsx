@@ -69,6 +69,15 @@ export default function ChatPage() {
           setMessages((prev) => [...prev, payload.new as Message]);
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages" },
+        (payload) => {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === (payload.new as Message).id ? (payload.new as Message) : m))
+          );
+        }
+      )
       .subscribe();
 
     return () => {
