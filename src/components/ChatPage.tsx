@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
@@ -13,6 +13,7 @@ interface Message {
   content: string;
   created_at: string;
   image_url: string | null;
+  read_at: string | null;
 }
 
 interface Profile {
@@ -68,6 +69,15 @@ export default function ChatPage() {
           setMessages((prev) => [...prev, payload.new as Message]);
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages" },
+        (payload) => {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === (payload.new as Message).id ? (payload.new as Message) : m))
+          );
+        }
+      )
       .subscribe();
 
     return () => {
@@ -107,6 +117,19 @@ export default function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, partnerTyping]);
+
+  // Mark unread messages from partner as read
+  useEffect(() => {
+    if (!user) return;
+    const unread = messages.filter((m) => m.sender_id !== user.id && !m.read_at);
+    if (unread.length === 0) return;
+    const ids = unread.map((m) => m.id);
+    supabase
+      .from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .in("id", ids)
+      .then();
+  }, [messages, user]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -203,9 +226,16 @@ export default function ChatPage() {
               {msg.content && (
                 <p className="text-sm leading-relaxed break-words">{msg.content}</p>
               )}
-              <p className="text-[10px] text-muted-foreground mt-1 text-right">
-                {format(new Date(msg.created_at), "h:mm a")}
-              </p>
+              <div className="flex items-center justify-end gap-1 mt-1">
+                <p className="text-[10px] text-muted-foreground">
+                  {format(new Date(msg.created_at), "h:mm a")}
+                </p>
+                {isMine(msg) && (
+                  msg.read_at
+                    ? <CheckCheck className="w-3.5 h-3.5 text-primary" />
+                    : <Check className="w-3.5 h-3.5 text-muted-foreground" />
+                )}
+              </div>
             </div>
           </div>
         ))}
