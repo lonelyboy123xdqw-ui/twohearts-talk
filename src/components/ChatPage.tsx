@@ -118,6 +118,19 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, partnerTyping]);
 
+  // Mark unread messages from partner as read
+  useEffect(() => {
+    if (!user) return;
+    const unread = messages.filter((m) => m.sender_id !== user.id && !m.read_at);
+    if (unread.length === 0) return;
+    const ids = unread.map((m) => m.id);
+    supabase
+      .from("messages")
+      .update({ read_at: new Date().toISOString() })
+      .in("id", ids)
+      .then();
+  }, [messages, user]);
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
