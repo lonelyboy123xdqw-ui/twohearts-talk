@@ -75,9 +75,38 @@ export default function ChatPage() {
     };
   }, []);
 
+  // Typing indicator channel
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase.channel("typing-indicators");
+    typingChannelRef.current = channel;
+
+    channel
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        if (payload.user_id !== user.id) {
+          setPartnerTyping(true);
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setPartnerTyping(false), 2000);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const broadcastTyping = () => {
+    typingChannelRef.current?.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { user_id: user?.id },
+    });
+  };
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, partnerTyping]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
