@@ -160,7 +160,17 @@ export default function ChatPage() {
                   {profiles[msg.sender_id] || "Love"}
                 </p>
               )}
-              <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+              {msg.image_url && (
+                <img
+                  src={msg.image_url}
+                  alt="Shared photo"
+                  className="rounded-lg max-w-full max-h-60 object-cover cursor-pointer mb-1"
+                  onClick={() => setLightboxUrl(msg.image_url)}
+                />
+              )}
+              {msg.content && (
+                <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+              )}
               <p className="text-[10px] text-muted-foreground mt-1 text-right">
                 {format(new Date(msg.created_at), "h:mm a")}
               </p>
