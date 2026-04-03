@@ -76,15 +76,47 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedImage(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMsg.trim() || !user) return;
+    if ((!newMsg.trim() && !selectedImage) || !user) return;
     setSending(true);
+
+    let image_url: string | null = null;
+
+    if (selectedImage) {
+      const ext = selectedImage.name.split(".").pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("chat-images")
+        .upload(path, selectedImage);
+      if (!error) {
+        const { data: urlData } = supabase.storage
+          .from("chat-images")
+          .getPublicUrl(path);
+        image_url = urlData.publicUrl;
+      }
+    }
+
     await supabase.from("messages").insert({
       sender_id: user.id,
       content: newMsg.trim(),
+      image_url,
     });
     setNewMsg("");
+    clearImage();
     setSending(false);
   };
 
