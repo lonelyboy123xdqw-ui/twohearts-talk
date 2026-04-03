@@ -180,11 +180,37 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
+      {/* Image preview */}
+      {imagePreview && (
+        <div className="px-4 py-2 border-t border-border bg-card flex items-center gap-2">
+          <img src={imagePreview} alt="Preview" className="h-16 w-16 rounded-lg object-cover" />
+          <Button variant="ghost" size="icon" onClick={clearImage} className="shrink-0">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Input */}
       <form
         onSubmit={handleSend}
         className="flex items-center gap-2 px-4 py-3 border-t border-border bg-card"
       >
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => fileInputRef.current?.click()}
+          className="shrink-0"
+        >
+          <ImagePlus className="w-4 h-4" />
+        </Button>
         <Input
           value={newMsg}
           onChange={(e) => setNewMsg(e.target.value)}
@@ -195,12 +221,21 @@ export default function ChatPage() {
         <Button
           type="submit"
           size="icon"
-          disabled={!newMsg.trim() || sending}
+          disabled={(!newMsg.trim() && !selectedImage) || sending}
           className="shrink-0"
         >
           <Send className="w-4 h-4" />
         </Button>
       </form>
+
+      {/* Lightbox */}
+      <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-2 bg-background/95">
+          {lightboxUrl && (
+            <img src={lightboxUrl} alt="Full size" className="w-full h-full object-contain rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
