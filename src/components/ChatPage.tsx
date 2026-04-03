@@ -254,7 +254,10 @@ export default function ChatPage() {
         </Button>
         <Input
           value={newMsg}
-          onChange={(e) => setNewMsg(e.target.value)}
+          onChange={(e) => {
+            setNewMsg(e.target.value);
+            if (e.target.value.trim()) broadcastTyping();
+          }}
           placeholder="Type a message..."
           className="flex-1 bg-secondary border-border"
           autoFocus
