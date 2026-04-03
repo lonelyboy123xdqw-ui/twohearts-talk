@@ -29,8 +29,11 @@ export default function ChatPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [partnerTyping, setPartnerTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // Fetch profiles
   useEffect(() => {
@@ -72,9 +75,38 @@ export default function ChatPage() {
     };
   }, []);
 
+  // Typing indicator channel
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase.channel("typing-indicators");
+    typingChannelRef.current = channel;
+
+    channel
+      .on("broadcast", { event: "typing" }, ({ payload }) => {
+        if (payload.user_id !== user.id) {
+          setPartnerTyping(true);
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setPartnerTyping(false), 2000);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const broadcastTyping = () => {
+    typingChannelRef.current?.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { user_id: user?.id },
+    });
+  };
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, partnerTyping]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -177,6 +209,15 @@ export default function ChatPage() {
             </div>
           </div>
         ))}
+        {partnerTyping && (
+          <div className="flex justify-start">
+            <div className="bg-chat-theirs rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
+              <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:150ms]" />
+              <span className="w-2 h-2 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:300ms]" />
+            </div>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
@@ -213,7 +254,10 @@ export default function ChatPage() {
         </Button>
         <Input
           value={newMsg}
-          onChange={(e) => setNewMsg(e.target.value)}
+          onChange={(e) => {
+            setNewMsg(e.target.value);
+            if (e.target.value.trim()) broadcastTyping();
+          }}
           placeholder="Type a message..."
           className="flex-1 bg-secondary border-border"
           autoFocus
