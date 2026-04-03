@@ -226,9 +226,16 @@ export default function ChatPage() {
               {msg.content && (
                 <p className="text-sm leading-relaxed break-words">{msg.content}</p>
               )}
-              <p className="text-[10px] text-muted-foreground mt-1 text-right">
-                {format(new Date(msg.created_at), "h:mm a")}
-              </p>
+              <div className="flex items-center justify-end gap-1 mt-1">
+                <p className="text-[10px] text-muted-foreground">
+                  {format(new Date(msg.created_at), "h:mm a")}
+                </p>
+                {isMine(msg) && (
+                  msg.read_at
+                    ? <CheckCheck className="w-3.5 h-3.5 text-primary" />
+                    : <Check className="w-3.5 h-3.5 text-muted-foreground" />
+                )}
+              </div>
             </div>
           </div>
         ))}
