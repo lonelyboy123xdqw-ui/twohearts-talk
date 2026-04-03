@@ -13,6 +13,7 @@ interface Message {
   content: string;
   created_at: string;
   image_url: string | null;
+  read_at: string | null;
 }
 
 interface Profile {
