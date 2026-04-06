@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
@@ -14,6 +14,7 @@ interface Message {
   created_at: string;
   image_url: string | null;
   read_at: string | null;
+  reply_to_id: string | null;
 }
 
 interface Profile {
@@ -31,8 +32,10 @@ export default function ChatPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -56,7 +59,7 @@ export default function ChatPage() {
       .from("messages")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(5000)
+      .limit(10000)
       .then(({ data }) => {
         if (data) setMessages(data.reverse());
       });
@@ -145,6 +148,11 @@ export default function ChatPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleReply = (msg: Message) => {
+    setReplyTo(msg);
+    inputRef.current?.focus();
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!newMsg.trim() && !selectedImage) || !user) return;
@@ -170,13 +178,29 @@ export default function ChatPage() {
       sender_id: user.id,
       content: newMsg.trim(),
       image_url,
+      reply_to_id: replyTo?.id || null,
     });
     setNewMsg("");
     clearImage();
+    setReplyTo(null);
     setSending(false);
   };
 
   const isMine = (msg: Message) => msg.sender_id === user?.id;
+
+  const getRepliedMessage = (replyId: string | null) => {
+    if (!replyId) return null;
+    return messages.find((m) => m.id === replyId) || null;
+  };
+
+  const scrollToMessage = (msgId: string) => {
+    const el = document.getElementById(`msg-${msgId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-primary/50");
+      setTimeout(() => el.classList.remove("ring-2", "ring-primary/50"), 1500);
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen max-w-lg mx-auto">
@@ -199,47 +223,87 @@ export default function ChatPage() {
             <p>No messages yet. Say hi! 💕</p>
           </div>
         )}
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${isMine(msg) ? "justify-end" : "justify-start"}`}
-          >
+        {messages.map((msg) => {
+          const repliedMsg = getRepliedMessage(msg.reply_to_id);
+          return (
             <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                isMine(msg)
-                  ? "bg-chat-mine rounded-br-sm"
-                  : "bg-chat-theirs rounded-bl-sm"
-              }`}
+              key={msg.id}
+              id={`msg-${msg.id}`}
+              className={`group flex ${isMine(msg) ? "justify-end" : "justify-start"} transition-all duration-300 rounded-2xl`}
             >
-              {!isMine(msg) && (
-                <p className="text-xs text-primary font-medium mb-0.5">
-                  {profiles[msg.sender_id] || "Love"}
-                </p>
-              )}
-              {msg.image_url && (
-                <img
-                  src={msg.image_url}
-                  alt="Shared photo"
-                  className="rounded-lg max-w-full max-h-60 object-cover cursor-pointer mb-1"
-                  onClick={() => setLightboxUrl(msg.image_url)}
-                />
-              )}
-              {msg.content && (
-                <p className="text-sm leading-relaxed break-words">{msg.content}</p>
-              )}
-              <div className="flex items-center justify-end gap-1 mt-1">
-                <p className="text-[10px] text-muted-foreground">
-                  {format(new Date(msg.created_at), "h:mm a")}
-                </p>
+              <div className="flex items-center gap-1">
+                {/* Reply button - left side for own messages */}
                 {isMine(msg) && (
-                  msg.read_at
-                    ? <CheckCheck className="w-3.5 h-3.5 text-primary" />
-                    : <Check className="w-3.5 h-3.5 text-muted-foreground" />
+                  <button
+                    onClick={() => handleReply(msg)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-muted"
+                  >
+                    <Reply className="w-3.5 h-3.5 text-muted-foreground" />
+                  </button>
+                )}
+                <div
+                  className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                    isMine(msg)
+                      ? "bg-chat-mine rounded-br-sm"
+                      : "bg-chat-theirs rounded-bl-sm"
+                  }`}
+                >
+                  {!isMine(msg) && (
+                    <p className="text-xs text-primary font-medium mb-0.5">
+                      {profiles[msg.sender_id] || "Love"}
+                    </p>
+                  )}
+                  {/* Replied message preview */}
+                  {repliedMsg && (
+                    <button
+                      onClick={() => scrollToMessage(repliedMsg.id)}
+                      className={`w-full text-left mb-1.5 px-3 py-1.5 rounded-lg border-l-2 border-primary/60 text-xs ${
+                        isMine(msg) ? "bg-primary/10" : "bg-muted/50"
+                      }`}
+                    >
+                      <p className="text-primary/80 font-medium truncate text-[10px]">
+                        {profiles[repliedMsg.sender_id] || "Love"}
+                      </p>
+                      <p className="text-muted-foreground truncate">
+                        {repliedMsg.image_url && !repliedMsg.content ? "📷 Photo" : repliedMsg.content}
+                      </p>
+                    </button>
+                  )}
+                  {msg.image_url && (
+                    <img
+                      src={msg.image_url}
+                      alt="Shared photo"
+                      className="rounded-lg max-w-full max-h-60 object-cover cursor-pointer mb-1"
+                      onClick={() => setLightboxUrl(msg.image_url)}
+                    />
+                  )}
+                  {msg.content && (
+                    <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+                  )}
+                  <div className="flex items-center justify-end gap-1 mt-1">
+                    <p className="text-[10px] text-muted-foreground">
+                      {format(new Date(msg.created_at), "h:mm a")}
+                    </p>
+                    {isMine(msg) && (
+                      msg.read_at
+                        ? <CheckCheck className="w-3.5 h-3.5 text-primary" />
+                        : <Check className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+                {/* Reply button - right side for partner messages */}
+                {!isMine(msg) && (
+                  <button
+                    onClick={() => handleReply(msg)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-muted"
+                  >
+                    <Reply className="w-3.5 h-3.5 text-muted-foreground" />
+                  </button>
                 )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {partnerTyping && (
           <div className="flex justify-start">
             <div className="bg-chat-theirs rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
@@ -251,6 +315,24 @@ export default function ChatPage() {
         )}
         <div ref={bottomRef} />
       </div>
+
+      {/* Reply preview */}
+      {replyTo && (
+        <div className="px-4 py-2 border-t border-border bg-card flex items-center gap-2">
+          <CornerDownRight className="w-4 h-4 text-primary shrink-0" />
+          <div className="flex-1 min-w-0 text-xs">
+            <p className="text-primary font-medium">
+              {isMine(replyTo) ? "You" : profiles[replyTo.sender_id] || "Love"}
+            </p>
+            <p className="text-muted-foreground truncate">
+              {replyTo.image_url && !replyTo.content ? "📷 Photo" : replyTo.content}
+            </p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => setReplyTo(null)} className="shrink-0 h-6 w-6">
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+      )}
 
       {/* Image preview */}
       {imagePreview && (
@@ -284,6 +366,7 @@ export default function ChatPage() {
           <ImagePlus className="w-4 h-4" />
         </Button>
         <Input
+          ref={inputRef}
           value={newMsg}
           onChange={(e) => {
             setNewMsg(e.target.value);
