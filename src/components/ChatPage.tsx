@@ -55,9 +55,10 @@ export default function ChatPage() {
     supabase
       .from("messages")
       .select("*")
-      .order("created_at", { ascending: true })
+      .order("created_at", { ascending: false })
+      .limit(5000)
       .then(({ data }) => {
-        if (data) setMessages(data);
+        if (data) setMessages(data.reverse());
       });
 
     const channel = supabase
