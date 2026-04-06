@@ -33,6 +33,7 @@ export default function ChatPage() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const pingAudioRef = useRef<HTMLAudioElement | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -70,7 +71,11 @@ export default function ChatPage() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          const newMsg = payload.new as Message;
+          setMessages((prev) => [...prev, newMsg]);
+          if (newMsg.sender_id !== user?.id) {
+            notifyNewMessage(newMsg);
+          }
         }
       )
       .on(
