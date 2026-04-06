@@ -21,6 +21,7 @@ export type Database = {
           id: string
           image_url: string | null
           read_at: string | null
+          reply_to_id: string | null
           sender_id: string
         }
         Insert: {
@@ -29,6 +30,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           read_at?: string | null
+          reply_to_id?: string | null
           sender_id: string
         }
         Update: {
@@ -37,9 +39,18 @@ export type Database = {
           id?: string
           image_url?: string | null
           read_at?: string | null
+          reply_to_id?: string | null
           sender_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
