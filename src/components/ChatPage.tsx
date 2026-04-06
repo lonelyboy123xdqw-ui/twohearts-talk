@@ -33,13 +33,46 @@ export default function ChatPage() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const pingAudioRef = useRef<HTMLAudioElement | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Fetch profiles
+  // Request notification permission
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  const playPing = () => {
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+      setTimeout(() => ctx.close(), 500);
+    } catch {}
+  };
+
+  const notifyNewMessage = (msg: Message) => {
+    playPing();
+    if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+      const senderName = profiles[msg.sender_id] || "Your Love";
+      const body = msg.image_url && !msg.content ? "📷 Sent a photo" : msg.content;
+      new Notification(`${senderName} 💕`, { body });
+    }
+  };
+
   useEffect(() => {
     supabase
       .from("profiles")
@@ -70,7 +103,11 @@ export default function ChatPage() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          const newMsg = payload.new as Message;
+          setMessages((prev) => [...prev, newMsg]);
+          if (newMsg.sender_id !== user?.id) {
+            notifyNewMessage(newMsg);
+          }
         }
       )
       .on(
