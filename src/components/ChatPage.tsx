@@ -295,6 +295,67 @@ export default function ChatPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+        setRecordingDuration(0);
+
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        if (blob.size === 0 || !user) return;
+
+        setSending(true);
+        const path = `${user.id}/${Date.now()}.webm`;
+        const { error } = await supabase.storage.from("voice-messages").upload(path, blob);
+        if (!error) {
+          const { data: urlData } = supabase.storage.from("voice-messages").getPublicUrl(path);
+          await supabase.from("messages").insert({
+            sender_id: user.id,
+            content: "",
+            audio_url: urlData.publicUrl,
+            reply_to_id: replyTo?.id || null,
+          } as any);
+          setReplyTo(null);
+        }
+        setSending(false);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      recordingIntervalRef.current = setInterval(() => setRecordingDuration((d) => d + 1), 1000);
+    } catch {
+      toast({ title: "Microphone access denied", description: "Please allow microphone access to send voice messages." });
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
+    }
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    setIsRecording(false);
+    setRecordingDuration(0);
+    audioChunksRef.current = [];
+
   const handleReply = (msg: Message) => {
     setReplyTo(msg);
     inputRef.current?.focus();
