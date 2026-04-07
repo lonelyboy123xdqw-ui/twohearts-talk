@@ -355,6 +355,7 @@ export default function ChatPage() {
     setIsRecording(false);
     setRecordingDuration(0);
     audioChunksRef.current = [];
+  };
 
   const handleReply = (msg: Message) => {
     setReplyTo(msg);
