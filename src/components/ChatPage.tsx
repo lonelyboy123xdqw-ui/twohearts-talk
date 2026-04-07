@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,32 @@ import { Input } from "@/components/ui/input";
 import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+
+function MessageContent({ text }: { text: string }) {
+  const parts = text.split(URL_REGEX);
+  return (
+    <p className="text-sm leading-relaxed break-words">
+      {parts.map((part, i) =>
+        URL_REGEX.test(part) ? (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-400 underline break-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </p>
+  );
+}
 
 interface Message {
   id: string;
@@ -314,9 +340,7 @@ export default function ChatPage() {
                       onClick={() => setLightboxUrl(msg.image_url)}
                     />
                   )}
-                  {msg.content && (
-                    <p className="text-sm leading-relaxed break-words">{msg.content}</p>
-                  )}
+                  {msg.content && <MessageContent text={msg.content} />}
                   <div className="flex items-center justify-end gap-1 mt-1">
                     <p className="text-[10px] text-muted-foreground">
                       {format(new Date(msg.created_at), "h:mm a")}
@@ -408,6 +432,21 @@ export default function ChatPage() {
           onChange={(e) => {
             setNewMsg(e.target.value);
             if (e.target.value.trim()) broadcastTyping();
+          }}
+          onPaste={(e) => {
+            const items = e.clipboardData?.items;
+            if (!items) return;
+            for (const item of Array.from(items)) {
+              if (item.type.startsWith("image/")) {
+                e.preventDefault();
+                const file = item.getAsFile();
+                if (file) {
+                  setSelectedImage(file);
+                  setImagePreview(URL.createObjectURL(file));
+                }
+                break;
+              }
+            }
           }}
           placeholder="Type a message..."
           className="flex-1 bg-secondary border-border"
