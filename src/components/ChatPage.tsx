@@ -493,6 +493,7 @@ export default function ChatPage() {
                       onClick={() => setLightboxUrl(msg.image_url)}
                     />
                   )}
+                  {msg.audio_url && <AudioPlayer src={msg.audio_url} />}
                   {msg.content && <MessageContent text={msg.content} />}
                   <div className="flex items-center justify-end gap-1 mt-1">
                     <p className="text-[10px] text-muted-foreground">
@@ -558,62 +559,92 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* Recording indicator */}
+      {isRecording && (
+        <div className="px-4 py-2 border-t border-border bg-card flex items-center gap-3">
+          <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
+          <span className="text-sm text-destructive font-medium flex-1">
+            Recording... {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")}
+          </span>
+          <Button variant="ghost" size="icon" onClick={cancelRecording} className="shrink-0 h-8 w-8">
+            <X className="w-4 h-4" />
+          </Button>
+          <Button size="icon" onClick={stopRecording} className="shrink-0 h-8 w-8">
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Input */}
-      <form
-        onSubmit={handleSend}
-        className="flex items-center gap-2 px-4 py-3 border-t border-border bg-card"
-      >
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          onChange={handleImageSelect}
-          className="hidden"
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => fileInputRef.current?.click()}
-          className="shrink-0"
+      {!isRecording && (
+        <form
+          onSubmit={handleSend}
+          className="flex items-center gap-2 px-4 py-3 border-t border-border bg-card"
         >
-          <ImagePlus className="w-4 h-4" />
-        </Button>
-        <Input
-          ref={inputRef}
-          value={newMsg}
-          onChange={(e) => {
-            setNewMsg(e.target.value);
-            if (e.target.value.trim()) broadcastTyping();
-          }}
-          onPaste={(e) => {
-            const items = e.clipboardData?.items;
-            if (!items) return;
-            for (const item of Array.from(items)) {
-              if (item.type.startsWith("image/")) {
-                e.preventDefault();
-                const file = item.getAsFile();
-                if (file) {
-                  setSelectedImage(file);
-                  setImagePreview(URL.createObjectURL(file));
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            className="shrink-0"
+          >
+            <ImagePlus className="w-4 h-4" />
+          </Button>
+          <Input
+            ref={inputRef}
+            value={newMsg}
+            onChange={(e) => {
+              setNewMsg(e.target.value);
+              if (e.target.value.trim()) broadcastTyping();
+            }}
+            onPaste={(e) => {
+              const items = e.clipboardData?.items;
+              if (!items) return;
+              for (const item of Array.from(items)) {
+                if (item.type.startsWith("image/")) {
+                  e.preventDefault();
+                  const file = item.getAsFile();
+                  if (file) {
+                    setSelectedImage(file);
+                    setImagePreview(URL.createObjectURL(file));
+                  }
+                  break;
                 }
-                break;
               }
-            }
-          }}
-          placeholder="Type a message..."
-          className="flex-1 bg-secondary border-border"
-          autoFocus
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={(!newMsg.trim() && !selectedImage) || sending}
-          className="shrink-0"
-        >
-          <Send className="w-4 h-4" />
-        </Button>
-      </form>
+            }}
+            placeholder="Type a message..."
+            className="flex-1 bg-secondary border-border"
+            autoFocus
+          />
+          {newMsg.trim() || selectedImage ? (
+            <Button
+              type="submit"
+              size="icon"
+              disabled={sending}
+              className="shrink-0"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={startRecording}
+              className="shrink-0"
+            >
+              <Mic className="w-4 h-4" />
+            </Button>
+          )}
+        </form>
+      )}
 
       {/* Lightbox */}
       <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>
