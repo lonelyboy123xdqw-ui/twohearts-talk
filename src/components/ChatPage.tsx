@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
