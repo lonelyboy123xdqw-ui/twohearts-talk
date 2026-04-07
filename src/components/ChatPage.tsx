@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
@@ -59,12 +60,44 @@ export default function ChatPage() {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
-  const pingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // PWA install prompt
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+    }
+
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        setIsInstalled(true);
+      }
+      setDeferredPrompt(null);
+    } else {
+      toast({
+        title: "Install Us Only 💕",
+        description: "On iPhone: tap Share → Add to Home Screen. On Android: tap ⋮ menu → Install app.",
+      });
+    }
+  };
 
   // Request notification permission
   useEffect(() => {
@@ -273,9 +306,16 @@ export default function ChatPage() {
           <Heart className="w-5 h-5 text-primary" fill="currentColor" />
           <span className="font-semibold text-lg">Us Only</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={signOut}>
-          <LogOut className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {!isInstalled && (
+            <Button variant="ghost" size="icon" onClick={handleInstall} title="Install app">
+              <Download className="w-4 h-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={signOut}>
+            <LogOut className="w-4 h-4" />
+          </Button>
+        </div>
       </header>
 
       {/* Messages */}
