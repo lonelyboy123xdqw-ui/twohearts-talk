@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Square, Play, Pause } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -34,12 +34,58 @@ function MessageContent({ text }: { text: string }) {
   );
 }
 
+function AudioPlayer({ src }: { src: string }) {
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const audio = new Audio(src);
+    audioRef.current = audio;
+    audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
+    audio.addEventListener("timeupdate", () => setProgress(audio.currentTime));
+    audio.addEventListener("ended", () => { setPlaying(false); setProgress(0); });
+    return () => { audio.pause(); audio.remove(); };
+  }, [src]);
+
+  const toggle = () => {
+    if (!audioRef.current) return;
+    if (playing) { audioRef.current.pause(); } else { audioRef.current.play(); }
+    setPlaying(!playing);
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="flex items-center gap-2 min-w-[160px]">
+      <button onClick={toggle} className="shrink-0 p-1 rounded-full hover:bg-muted/50">
+        {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+      </button>
+      <div className="flex-1 flex flex-col gap-0.5">
+        <div className="h-1 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all"
+            style={{ width: `${duration ? (progress / duration) * 100 : 0}%` }}
+          />
+        </div>
+        <span className="text-[10px] text-muted-foreground">{formatTime(progress)}/{formatTime(duration)}</span>
+      </div>
+    </div>
+  );
+}
+
 interface Message {
   id: string;
   sender_id: string;
   content: string;
   created_at: string;
   image_url: string | null;
+  audio_url: string | null;
   read_at: string | null;
   reply_to_id: string | null;
 }
@@ -62,11 +108,16 @@ export default function ChatPage() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   // PWA install prompt
   useEffect(() => {
@@ -244,6 +295,68 @@ export default function ChatPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+        setRecordingDuration(0);
+
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        if (blob.size === 0 || !user) return;
+
+        setSending(true);
+        const path = `${user.id}/${Date.now()}.webm`;
+        const { error } = await supabase.storage.from("voice-messages").upload(path, blob);
+        if (!error) {
+          const { data: urlData } = supabase.storage.from("voice-messages").getPublicUrl(path);
+          await supabase.from("messages").insert({
+            sender_id: user.id,
+            content: "",
+            audio_url: urlData.publicUrl,
+            reply_to_id: replyTo?.id || null,
+          } as any);
+          setReplyTo(null);
+        }
+        setSending(false);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      recordingIntervalRef.current = setInterval(() => setRecordingDuration((d) => d + 1), 1000);
+    } catch {
+      toast({ title: "Microphone access denied", description: "Please allow microphone access to send voice messages." });
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
+    }
+    if (recordingIntervalRef.current) clearInterval(recordingIntervalRef.current);
+    setIsRecording(false);
+    setRecordingDuration(0);
+    audioChunksRef.current = [];
+  };
+
   const handleReply = (msg: Message) => {
     setReplyTo(msg);
     inputRef.current?.focus();
@@ -380,6 +493,7 @@ export default function ChatPage() {
                       onClick={() => setLightboxUrl(msg.image_url)}
                     />
                   )}
+                  {msg.audio_url && <AudioPlayer src={msg.audio_url} />}
                   {msg.content && <MessageContent text={msg.content} />}
                   <div className="flex items-center justify-end gap-1 mt-1">
                     <p className="text-[10px] text-muted-foreground">
@@ -445,62 +559,92 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* Recording indicator */}
+      {isRecording && (
+        <div className="px-4 py-2 border-t border-border bg-card flex items-center gap-3">
+          <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
+          <span className="text-sm text-destructive font-medium flex-1">
+            Recording... {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")}
+          </span>
+          <Button variant="ghost" size="icon" onClick={cancelRecording} className="shrink-0 h-8 w-8">
+            <X className="w-4 h-4" />
+          </Button>
+          <Button size="icon" onClick={stopRecording} className="shrink-0 h-8 w-8">
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Input */}
-      <form
-        onSubmit={handleSend}
-        className="flex items-center gap-2 px-4 py-3 border-t border-border bg-card"
-      >
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          onChange={handleImageSelect}
-          className="hidden"
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => fileInputRef.current?.click()}
-          className="shrink-0"
+      {!isRecording && (
+        <form
+          onSubmit={handleSend}
+          className="flex items-center gap-2 px-4 py-3 border-t border-border bg-card"
         >
-          <ImagePlus className="w-4 h-4" />
-        </Button>
-        <Input
-          ref={inputRef}
-          value={newMsg}
-          onChange={(e) => {
-            setNewMsg(e.target.value);
-            if (e.target.value.trim()) broadcastTyping();
-          }}
-          onPaste={(e) => {
-            const items = e.clipboardData?.items;
-            if (!items) return;
-            for (const item of Array.from(items)) {
-              if (item.type.startsWith("image/")) {
-                e.preventDefault();
-                const file = item.getAsFile();
-                if (file) {
-                  setSelectedImage(file);
-                  setImagePreview(URL.createObjectURL(file));
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            className="shrink-0"
+          >
+            <ImagePlus className="w-4 h-4" />
+          </Button>
+          <Input
+            ref={inputRef}
+            value={newMsg}
+            onChange={(e) => {
+              setNewMsg(e.target.value);
+              if (e.target.value.trim()) broadcastTyping();
+            }}
+            onPaste={(e) => {
+              const items = e.clipboardData?.items;
+              if (!items) return;
+              for (const item of Array.from(items)) {
+                if (item.type.startsWith("image/")) {
+                  e.preventDefault();
+                  const file = item.getAsFile();
+                  if (file) {
+                    setSelectedImage(file);
+                    setImagePreview(URL.createObjectURL(file));
+                  }
+                  break;
                 }
-                break;
               }
-            }
-          }}
-          placeholder="Type a message..."
-          className="flex-1 bg-secondary border-border"
-          autoFocus
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={(!newMsg.trim() && !selectedImage) || sending}
-          className="shrink-0"
-        >
-          <Send className="w-4 h-4" />
-        </Button>
-      </form>
+            }}
+            placeholder="Type a message..."
+            className="flex-1 bg-secondary border-border"
+            autoFocus
+          />
+          {newMsg.trim() || selectedImage ? (
+            <Button
+              type="submit"
+              size="icon"
+              disabled={sending}
+              className="shrink-0"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={startRecording}
+              className="shrink-0"
+            >
+              <Mic className="w-4 h-4" />
+            </Button>
+          )}
+        </form>
+      )}
 
       {/* Lightbox */}
       <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>
