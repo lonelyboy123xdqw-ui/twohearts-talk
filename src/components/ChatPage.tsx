@@ -20,7 +20,7 @@ function MessageContent({ text }: { text: string }) {
             href={part}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 underline break-all"
+            className="text-primary underline break-all"
             onClick={(e) => e.stopPropagation()}
           >
             {part}
