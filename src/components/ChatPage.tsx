@@ -306,9 +306,16 @@ export default function ChatPage() {
           <Heart className="w-5 h-5 text-primary" fill="currentColor" />
           <span className="font-semibold text-lg">Us Only</span>
         </div>
-        <Button variant="ghost" size="icon" onClick={signOut}>
-          <LogOut className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {!isInstalled && (
+            <Button variant="ghost" size="icon" onClick={handleInstall} title="Install app">
+              <Download className="w-4 h-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={signOut}>
+            <LogOut className="w-4 h-4" />
+          </Button>
+        </div>
       </header>
 
       {/* Messages */}
