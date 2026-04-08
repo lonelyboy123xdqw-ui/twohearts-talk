@@ -56,8 +56,11 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     font-family: 'Plus Jakarta Sans', sans-serif;
+    background: linear-gradient(145deg, hsl(260 30% 8%) 0%, hsl(275 25% 12%) 50%, hsl(250 28% 10%) 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
   }
 }
 
