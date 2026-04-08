@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Square, Play, Pause } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 
@@ -412,7 +412,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-lg mx-auto">
+    <div className="relative flex flex-col h-screen max-w-lg mx-auto">
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
         <div className="flex items-center gap-2">
@@ -647,13 +647,25 @@ export default function ChatPage() {
       )}
 
       {/* Lightbox */}
-      <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-2 bg-background/95">
-          {lightboxUrl && (
-            <img src={lightboxUrl} alt="Full size" className="w-full h-full object-contain rounded-lg" />
-          )}
-        </DialogContent>
-      </Dialog>
+      {lightboxUrl && (
+        <div
+          className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            className="absolute top-3 right-3 text-white/80 hover:text-white z-10"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Full size"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
