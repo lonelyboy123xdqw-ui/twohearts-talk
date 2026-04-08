@@ -73,3 +73,7 @@
     display: none;
   }
 }
+
+@supports (height: 100dvh) {
+  /* Already using 100dvh in components */
+}
