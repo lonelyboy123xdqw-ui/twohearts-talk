@@ -2,51 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 20 20% 7%;
-    --foreground: 30 20% 92%;
+    --background: 260 30% 8%;
+    --foreground: 260 20% 92%;
 
-    --card: 20 15% 11%;
-    --card-foreground: 30 20% 92%;
+    --card: 260 25% 12%;
+    --card-foreground: 260 20% 92%;
 
-    --popover: 20 15% 11%;
-    --popover-foreground: 30 20% 92%;
+    --popover: 260 25% 12%;
+    --popover-foreground: 260 20% 92%;
 
-    --primary: 350 65% 55%;
+    --primary: 270 60% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 20 12% 16%;
-    --secondary-foreground: 30 15% 80%;
+    --secondary: 260 20% 16%;
+    --secondary-foreground: 260 15% 75%;
 
-    --muted: 20 10% 14%;
-    --muted-foreground: 20 10% 50%;
+    --muted: 260 18% 14%;
+    --muted-foreground: 260 12% 50%;
 
-    --accent: 30 60% 50%;
+    --accent: 290 50% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 20 10% 18%;
-    --input: 20 10% 18%;
-    --ring: 350 65% 55%;
+    --border: 260 15% 18%;
+    --input: 260 15% 18%;
+    --ring: 270 60% 65%;
 
     --radius: 1rem;
 
-    --sidebar-background: 20 15% 9%;
-    --sidebar-foreground: 30 15% 80%;
-    --sidebar-primary: 350 65% 55%;
+    --sidebar-background: 260 28% 10%;
+    --sidebar-foreground: 260 15% 75%;
+    --sidebar-primary: 270 60% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 20 12% 16%;
-    --sidebar-accent-foreground: 30 15% 80%;
-    --sidebar-border: 20 10% 18%;
-    --sidebar-ring: 350 65% 55%;
+    --sidebar-accent: 260 20% 16%;
+    --sidebar-accent-foreground: 260 15% 75%;
+    --sidebar-border: 260 15% 18%;
+    --sidebar-ring: 270 60% 65%;
 
-    --chat-bubble-mine: 350 50% 25%;
-    --chat-bubble-theirs: 20 12% 16%;
+    --chat-bubble-mine: 270 40% 28%;
+    --chat-bubble-theirs: 260 20% 16%;
   }
 }
 
@@ -57,7 +57,7 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
 }
 
