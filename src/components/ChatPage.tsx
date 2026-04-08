@@ -412,7 +412,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="relative flex flex-col h-screen max-w-lg mx-auto">
+    <div className="relative flex flex-col h-[100dvh] w-full max-w-2xl mx-auto">
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
         <div className="flex items-center gap-2">
@@ -458,7 +458,7 @@ export default function ChatPage() {
                   </button>
                 )}
                 <div
-                  className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                  className={`max-w-[80%] sm:max-w-[65%] rounded-2xl px-4 py-2.5 ${
                     isMine(msg)
                       ? "bg-chat-mine rounded-br-sm"
                       : "bg-chat-theirs rounded-bl-sm"
