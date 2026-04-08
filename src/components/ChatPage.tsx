@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Square, Play, Pause } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 
@@ -412,7 +412,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-lg mx-auto">
+    <div className="relative flex flex-col h-screen max-w-lg mx-auto">
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
         <div className="flex items-center gap-2">
