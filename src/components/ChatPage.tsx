@@ -201,11 +201,11 @@ export default function ChatPage() {
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("user_id, display_name")
+      .select("user_id, display_name, avatar_url")
       .then(({ data }) => {
         if (data) {
-          const map: Record<string, string> = {};
-          data.forEach((p: Profile) => (map[p.user_id] = p.display_name));
+          const map: Record<string, ProfileData> = {};
+          data.forEach((p: any) => (map[p.user_id] = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url }));
           setProfiles(map);
         }
       });
