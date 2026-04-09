@@ -196,16 +196,18 @@ export default function ChatPage() {
       });
   }, []);
 
-  // Fetch messages and subscribe to realtime
-  useEffect(() => {
-    supabase
+  const fetchMessages = useCallback(async () => {
+    const { data } = await supabase
       .from("messages")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(10000)
-      .then(({ data }) => {
-        if (data) setMessages(data.reverse());
-      });
+      .limit(10000);
+    if (data) setMessages(data.reverse());
+  }, []);
+
+  // Fetch messages and subscribe to realtime
+  useEffect(() => {
+    fetchMessages();
 
     const channel = supabase
       .channel("messages-realtime")
@@ -214,7 +216,10 @@ export default function ChatPage() {
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
           const newMsg = payload.new as Message;
-          setMessages((prev) => [...prev, newMsg]);
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
           if (newMsg.sender_id !== user?.id) {
             notifyNewMessage(newMsg);
           }
@@ -229,12 +234,39 @@ export default function ChatPage() {
           );
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") {
+          setTimeout(() => {
+            supabase.removeChannel(channel);
+            fetchMessages();
+          }, 2000);
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Auto-refresh on tab focus / visibility change & periodic heartbeat
+  useEffect(() => {
+    const onFocus = () => fetchMessages();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchMessages();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+
+    // Heartbeat: refetch every 30s to catch missed messages
+    const interval = setInterval(fetchMessages, 30000);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(interval);
+    };
+  }, [fetchMessages]);
 
   // Typing indicator channel
   useEffect(() => {
@@ -367,6 +399,13 @@ export default function ChatPage() {
     if ((!newMsg.trim() && !selectedImage) || !user) return;
     setSending(true);
 
+    const msgContent = newMsg.trim();
+    const replyId = replyTo?.id || null;
+
+    // Clear input immediately for snappy UX
+    setNewMsg("");
+    setReplyTo(null);
+
     let image_url: string | null = null;
 
     if (selectedImage) {
@@ -383,15 +422,31 @@ export default function ChatPage() {
       }
     }
 
-    await supabase.from("messages").insert({
-      sender_id: user.id,
-      content: newMsg.trim(),
-      image_url,
-      reply_to_id: replyTo?.id || null,
-    });
-    setNewMsg("");
     clearImage();
-    setReplyTo(null);
+
+    // Retry up to 3 times on failure
+    let attempts = 0;
+    let success = false;
+    while (attempts < 3 && !success) {
+      const { error } = await supabase.from("messages").insert({
+        sender_id: user.id,
+        content: msgContent,
+        image_url,
+        reply_to_id: replyId,
+      });
+      if (!error) {
+        success = true;
+      } else {
+        attempts++;
+        if (attempts < 3) await new Promise((r) => setTimeout(r, 1000 * attempts));
+      }
+    }
+
+    if (!success) {
+      toast({ title: "Message failed to send", description: "Please check your connection and try again." });
+      setNewMsg(msgContent); // Restore message so user doesn't lose it
+    }
+
     setSending(false);
   };
 
