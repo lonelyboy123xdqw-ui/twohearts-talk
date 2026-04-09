@@ -192,7 +192,7 @@ export default function ChatPage() {
   const notifyNewMessage = (msg: Message) => {
     playPing();
     if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
-      const senderName = profiles[msg.sender_id] || "Your Love";
+      const senderName = profiles[msg.sender_id]?.display_name || "Your Love";
       const body = msg.image_url && !msg.content ? "📷 Sent a photo" : msg.content;
       new Notification(`${senderName} 💕`, { body });
     }
