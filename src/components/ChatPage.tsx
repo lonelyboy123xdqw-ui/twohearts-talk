@@ -486,6 +486,10 @@ export default function ChatPage() {
         <div className="flex items-center gap-2">
           <Heart className="w-5 h-5 text-primary" fill="currentColor" />
           <span className="font-semibold text-lg">Us Only</span>
+          <span className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${isOnline ? 'bg-green-500/15 text-green-500' : 'bg-destructive/15 text-destructive'}`}>
+            {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+            {isOnline ? 'Online' : 'Offline'}
+          </span>
         </div>
         <div className="flex items-center gap-1">
           {!isInstalled && (
