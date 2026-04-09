@@ -561,7 +561,7 @@ export default function ChatPage() {
                       }`}
                     >
                       <p className="text-primary/80 font-medium truncate text-[10px]">
-                        {profiles[repliedMsg.sender_id] || "Love"}
+                        {profiles[repliedMsg.sender_id]?.display_name || "Love"}
                       </p>
                       <p className="text-muted-foreground truncate">
                         {repliedMsg.image_url && !repliedMsg.content ? "📷 Photo" : repliedMsg.content}
@@ -620,7 +620,7 @@ export default function ChatPage() {
           <CornerDownRight className="w-4 h-4 text-primary shrink-0" />
           <div className="flex-1 min-w-0 text-xs">
             <p className="text-primary font-medium">
-              {isMine(replyTo) ? "You" : profiles[replyTo.sender_id] || "Love"}
+              {isMine(replyTo) ? "You" : profiles[replyTo.sender_id]?.display_name || "Love"}
             </p>
             <p className="text-muted-foreground truncate">
               {replyTo.image_url && !replyTo.content ? "📷 Photo" : replyTo.content}
