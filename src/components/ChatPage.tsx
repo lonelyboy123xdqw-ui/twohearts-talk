@@ -598,6 +598,15 @@ export default function ChatPage() {
                     <Reply className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
                 )}
+                {/* Avatar for own messages */}
+                {isMine(msg) && (
+                  <Avatar className="w-7 h-7 shrink-0">
+                    <AvatarImage src={profiles[msg.sender_id]?.avatar_url || undefined} />
+                    <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+                      {(profiles[msg.sender_id]?.display_name || "M").charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
               </div>
             </div>
           );
