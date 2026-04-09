@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Square, Play, Pause } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Square, Play, Pause, Wifi, WifiOff } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
@@ -110,6 +110,7 @@ export default function ChatPage() {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -118,6 +119,18 @@ export default function ChatPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  // Online/offline detection
+  useEffect(() => {
+    const goOnline = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
 
   // PWA install prompt
   useEffect(() => {
@@ -473,6 +486,10 @@ export default function ChatPage() {
         <div className="flex items-center gap-2">
           <Heart className="w-5 h-5 text-primary" fill="currentColor" />
           <span className="font-semibold text-lg">Us Only</span>
+          <span className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${isOnline ? 'bg-green-500/15 text-green-500' : 'bg-destructive/15 text-destructive'}`}>
+            {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+            {isOnline ? 'Online' : 'Offline'}
+          </span>
         </div>
         <div className="flex items-center gap-1">
           {!isInstalled && (
