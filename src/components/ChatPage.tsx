@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Square, Play, Pause, Wifi, WifiOff } from "lucide-react";
 import { format } from "date-fns";
@@ -90,15 +91,16 @@ interface Message {
   reply_to_id: string | null;
 }
 
-interface Profile {
+interface ProfileData {
   user_id: string;
   display_name: string;
+  avatar_url: string | null;
 }
 
 export default function ChatPage() {
   const { user, signOut } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [profiles, setProfiles] = useState<Record<string, ProfileData>>({});
   const [newMsg, setNewMsg] = useState("");
   const [sending, setSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -190,7 +192,7 @@ export default function ChatPage() {
   const notifyNewMessage = (msg: Message) => {
     playPing();
     if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
-      const senderName = profiles[msg.sender_id] || "Your Love";
+      const senderName = profiles[msg.sender_id]?.display_name || "Your Love";
       const body = msg.image_url && !msg.content ? "📷 Sent a photo" : msg.content;
       new Notification(`${senderName} 💕`, { body });
     }
@@ -199,11 +201,11 @@ export default function ChatPage() {
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("user_id, display_name")
+      .select("user_id, display_name, avatar_url")
       .then(({ data }) => {
         if (data) {
-          const map: Record<string, string> = {};
-          data.forEach((p: Profile) => (map[p.user_id] = p.display_name));
+          const map: Record<string, ProfileData> = {};
+          data.forEach((p: any) => (map[p.user_id] = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url }));
           setProfiles(map);
         }
       });
@@ -519,7 +521,16 @@ export default function ChatPage() {
               id={`msg-${msg.id}`}
               className={`group flex ${isMine(msg) ? "justify-end" : "justify-start"} transition-all duration-300 rounded-2xl`}
             >
-              <div className="flex items-center gap-1">
+              <div className="flex items-end gap-1.5">
+                {/* Avatar for partner messages */}
+                {!isMine(msg) && (
+                  <Avatar className="w-7 h-7 shrink-0">
+                    <AvatarImage src={profiles[msg.sender_id]?.avatar_url || undefined} />
+                    <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+                      {(profiles[msg.sender_id]?.display_name || "L").charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
                 {/* Reply button - left side for own messages */}
                 {isMine(msg) && (
                   <button
@@ -538,7 +549,7 @@ export default function ChatPage() {
                 >
                   {!isMine(msg) && (
                     <p className="text-xs text-primary font-medium mb-0.5">
-                      {profiles[msg.sender_id] || "Love"}
+                      {profiles[msg.sender_id]?.display_name || "Love"}
                     </p>
                   )}
                   {/* Replied message preview */}
@@ -550,7 +561,7 @@ export default function ChatPage() {
                       }`}
                     >
                       <p className="text-primary/80 font-medium truncate text-[10px]">
-                        {profiles[repliedMsg.sender_id] || "Love"}
+                        {profiles[repliedMsg.sender_id]?.display_name || "Love"}
                       </p>
                       <p className="text-muted-foreground truncate">
                         {repliedMsg.image_url && !repliedMsg.content ? "📷 Photo" : repliedMsg.content}
@@ -587,6 +598,15 @@ export default function ChatPage() {
                     <Reply className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
                 )}
+                {/* Avatar for own messages */}
+                {isMine(msg) && (
+                  <Avatar className="w-7 h-7 shrink-0">
+                    <AvatarImage src={profiles[msg.sender_id]?.avatar_url || undefined} />
+                    <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+                      {(profiles[msg.sender_id]?.display_name || "M").charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
               </div>
             </div>
           );
@@ -609,7 +629,7 @@ export default function ChatPage() {
           <CornerDownRight className="w-4 h-4 text-primary shrink-0" />
           <div className="flex-1 min-w-0 text-xs">
             <p className="text-primary font-medium">
-              {isMine(replyTo) ? "You" : profiles[replyTo.sender_id] || "Love"}
+              {isMine(replyTo) ? "You" : profiles[replyTo.sender_id]?.display_name || "Love"}
             </p>
             <p className="text-muted-foreground truncate">
               {replyTo.image_url && !replyTo.content ? "📷 Photo" : replyTo.content}
