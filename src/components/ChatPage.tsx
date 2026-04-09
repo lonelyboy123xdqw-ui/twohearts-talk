@@ -399,6 +399,13 @@ export default function ChatPage() {
     if ((!newMsg.trim() && !selectedImage) || !user) return;
     setSending(true);
 
+    const msgContent = newMsg.trim();
+    const replyId = replyTo?.id || null;
+
+    // Clear input immediately for snappy UX
+    setNewMsg("");
+    setReplyTo(null);
+
     let image_url: string | null = null;
 
     if (selectedImage) {
@@ -415,15 +422,31 @@ export default function ChatPage() {
       }
     }
 
-    await supabase.from("messages").insert({
-      sender_id: user.id,
-      content: newMsg.trim(),
-      image_url,
-      reply_to_id: replyTo?.id || null,
-    });
-    setNewMsg("");
     clearImage();
-    setReplyTo(null);
+
+    // Retry up to 3 times on failure
+    let attempts = 0;
+    let success = false;
+    while (attempts < 3 && !success) {
+      const { error } = await supabase.from("messages").insert({
+        sender_id: user.id,
+        content: msgContent,
+        image_url,
+        reply_to_id: replyId,
+      });
+      if (!error) {
+        success = true;
+      } else {
+        attempts++;
+        if (attempts < 3) await new Promise((r) => setTimeout(r, 1000 * attempts));
+      }
+    }
+
+    if (!success) {
+      toast({ title: "Message failed to send", description: "Please check your connection and try again." });
+      setNewMsg(msgContent); // Restore message so user doesn't lose it
+    }
+
     setSending(false);
   };
 
