@@ -91,9 +91,10 @@ interface Message {
   reply_to_id: string | null;
 }
 
-interface Profile {
+interface ProfileData {
   user_id: string;
   display_name: string;
+  avatar_url: string | null;
 }
 
 export default function ChatPage() {
