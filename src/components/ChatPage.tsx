@@ -521,7 +521,16 @@ export default function ChatPage() {
               id={`msg-${msg.id}`}
               className={`group flex ${isMine(msg) ? "justify-end" : "justify-start"} transition-all duration-300 rounded-2xl`}
             >
-              <div className="flex items-center gap-1">
+              <div className="flex items-end gap-1.5">
+                {/* Avatar for partner messages */}
+                {!isMine(msg) && (
+                  <Avatar className="w-7 h-7 shrink-0">
+                    <AvatarImage src={profiles[msg.sender_id]?.avatar_url || undefined} />
+                    <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
+                      {(profiles[msg.sender_id]?.display_name || "L").charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
                 {/* Reply button - left side for own messages */}
                 {isMine(msg) && (
                   <button
@@ -540,7 +549,7 @@ export default function ChatPage() {
                 >
                   {!isMine(msg) && (
                     <p className="text-xs text-primary font-medium mb-0.5">
-                      {profiles[msg.sender_id] || "Love"}
+                      {profiles[msg.sender_id]?.display_name || "Love"}
                     </p>
                   )}
                   {/* Replied message preview */}
