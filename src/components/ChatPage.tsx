@@ -120,6 +120,7 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -144,6 +145,29 @@ export default function ChatPage() {
       window.removeEventListener("offline", goOffline);
     };
   }, []);
+
+  // Presence tracking — broadcasts which users are currently connected
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase.channel("presence-room", {
+      config: { presence: { key: user.id } },
+    });
+
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState();
+        setOnlineUsers(new Set(Object.keys(state)));
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   // PWA install prompt
   useEffect(() => {
@@ -590,16 +614,44 @@ export default function ChatPage() {
   return (
     <div className="relative flex flex-col h-[100dvh] w-full max-w-2xl mx-auto">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-        <div className="flex items-center gap-2">
-          <Heart className="w-5 h-5 text-primary" fill="currentColor" />
-          <span className="font-semibold text-lg">Us Only</span>
-          <span className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${isOnline ? 'bg-green-500/15 text-green-500' : 'bg-destructive/15 text-destructive'}`}>
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="relative shrink-0">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
+              <Heart className="w-4 h-4 text-primary-foreground" fill="currentColor" />
+            </div>
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="font-semibold text-base bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Us Only
+            </span>
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              {(() => {
+                const partner = Object.values(profiles).find((p) => p.user_id !== user?.id);
+                if (!partner) {
+                  return (
+                    <span className="flex items-center gap-1">
+                      {isOnline ? <Wifi className="w-3 h-3 text-green-500" /> : <WifiOff className="w-3 h-3 text-destructive" />}
+                      {isOnline ? "Connected" : "Offline"}
+                    </span>
+                  );
+                }
+                const partnerOnline = onlineUsers.has(partner.user_id);
+                return (
+                  <span className="flex items-center gap-1.5 truncate">
+                    <span className={`w-1.5 h-1.5 rounded-full ${partnerOnline ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.8)]" : "bg-muted-foreground/50"}`} />
+                    <span className="truncate">{partner.display_name} · {partnerOnline ? "online" : "offline"}</span>
+                  </span>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <span className={`hidden sm:flex items-center gap-1 text-[10px] px-2 py-1 rounded-full ${isOnline ? 'bg-green-500/15 text-green-500' : 'bg-destructive/15 text-destructive'}`}>
             {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
             {isOnline ? 'Online' : 'Offline'}
           </span>
-        </div>
-        <div className="flex items-center gap-1">
           {!isInstalled && (
             <Button variant="ghost" size="icon" onClick={handleInstall} title="Install app">
               <Download className="w-4 h-4" />
@@ -630,12 +682,17 @@ export default function ChatPage() {
               <div className="flex items-end gap-1.5">
                 {/* Avatar for partner messages */}
                 {!isMine(msg) && (
-                  <Avatar className="w-7 h-7 shrink-0">
-                    <AvatarImage src={profiles[msg.sender_id]?.avatar_url || undefined} />
-                    <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
-                      {(profiles[msg.sender_id]?.display_name || "L").charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative shrink-0">
+                    <Avatar className="w-7 h-7 ring-2 ring-background">
+                      <AvatarImage src={profiles[msg.sender_id]?.avatar_url || undefined} />
+                      <AvatarFallback className="text-[10px] bg-gradient-to-br from-primary/40 to-accent/40 text-primary-foreground">
+                        {(profiles[msg.sender_id]?.display_name || "L").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {onlineUsers.has(msg.sender_id) && (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-background" />
+                    )}
+                  </div>
                 )}
                 {/* Reply button - left side for own messages */}
                 {isMine(msg) && (
@@ -734,12 +791,15 @@ export default function ChatPage() {
                 )}
                 {/* Avatar for own messages */}
                 {isMine(msg) && (
-                  <Avatar className="w-7 h-7 shrink-0">
-                    <AvatarImage src={profiles[msg.sender_id]?.avatar_url || undefined} />
-                    <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
-                      {(profiles[msg.sender_id]?.display_name || "M").charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative shrink-0">
+                    <Avatar className="w-7 h-7 ring-2 ring-background">
+                      <AvatarImage src={profiles[msg.sender_id]?.avatar_url || undefined} />
+                      <AvatarFallback className="text-[10px] bg-gradient-to-br from-primary to-accent text-primary-foreground">
+                        {(profiles[msg.sender_id]?.display_name || "M").charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-background" />
+                  </div>
                 )}
               </div>
             </div>
