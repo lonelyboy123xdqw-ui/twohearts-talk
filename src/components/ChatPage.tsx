@@ -785,6 +785,31 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* Video preview */}
+      {videoPreview && (
+        <div className="px-4 py-2 border-t border-border bg-card flex items-center gap-2">
+          <video src={videoPreview} className="h-16 w-16 rounded-lg object-cover" />
+          <span className="text-xs flex-1 truncate">{selectedVideo?.name}</span>
+          <Button variant="ghost" size="icon" onClick={clearVideo} className="shrink-0">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* File preview */}
+      {selectedFile && (
+        <div className="px-4 py-2 border-t border-border bg-card flex items-center gap-2">
+          <FileText className="w-6 h-6 text-primary shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs truncate">{selectedFile.name}</p>
+            <p className="text-[10px] text-muted-foreground">{(selectedFile.size / 1024).toFixed(1)} KB</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={clearFile} className="shrink-0">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Recording indicator */}
       {isRecording && (
         <div className="px-4 py-2 border-t border-border bg-card flex items-center gap-3">
@@ -814,6 +839,19 @@ export default function ChatPage() {
             onChange={handleImageSelect}
             className="hidden"
           />
+          <input
+            type="file"
+            accept="video/*"
+            ref={videoInputRef}
+            onChange={handleVideoSelect}
+            className="hidden"
+          />
+          <input
+            type="file"
+            ref={docInputRef}
+            onChange={handleDocSelect}
+            className="hidden"
+          />
           <Button
             type="button"
             variant="ghost"
@@ -822,6 +860,26 @@ export default function ChatPage() {
             className="shrink-0"
           >
             <ImagePlus className="w-4 h-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => videoInputRef.current?.click()}
+            className="shrink-0"
+            title="Send video"
+          >
+            <Film className="w-4 h-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => docInputRef.current?.click()}
+            className="shrink-0"
+            title="Send file"
+          >
+            <Paperclip className="w-4 h-4" />
           </Button>
           <Input
             ref={inputRef}
@@ -849,7 +907,7 @@ export default function ChatPage() {
             className="flex-1 bg-secondary border-border"
             autoFocus
           />
-          {newMsg.trim() || selectedImage ? (
+          {newMsg.trim() || selectedImage || selectedFile || selectedVideo ? (
             <Button
               type="submit"
               size="icon"
