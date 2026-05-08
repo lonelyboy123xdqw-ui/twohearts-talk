@@ -682,6 +682,34 @@ export default function ChatPage() {
                       onClick={() => setLightboxUrl(msg.image_url)}
                     />
                   )}
+                  {msg.video_url && (
+                    <div className="mb-1 relative group/vid">
+                      <video
+                        src={msg.video_url}
+                        controls
+                        className="rounded-lg max-w-full max-h-60"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => downloadUrl(msg.video_url!, `video-${msg.id}.mp4`)}
+                        className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 text-white opacity-0 group-hover/vid:opacity-100 transition-opacity"
+                        title="Download"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  {msg.file_url && (
+                    <button
+                      type="button"
+                      onClick={() => downloadUrl(msg.file_url!, msg.file_name || "file")}
+                      className="mb-1 flex items-center gap-2 px-3 py-2 rounded-lg bg-background/40 hover:bg-background/60 transition-colors w-full text-left"
+                    >
+                      <FileText className="w-5 h-5 shrink-0 text-primary" />
+                      <span className="text-xs flex-1 truncate">{msg.file_name || "File"}</span>
+                      <Download className="w-4 h-4 shrink-0 opacity-70" />
+                    </button>
+                  )}
                   {msg.audio_url && <AudioPlayer src={msg.audio_url} />}
                   {msg.content && <MessageContent text={msg.content} />}
                   <div className="flex items-center justify-end gap-1 mt-1">
