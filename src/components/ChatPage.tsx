@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Square, Play, Pause, Wifi, WifiOff } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Square, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
@@ -89,6 +89,10 @@ interface Message {
   audio_url: string | null;
   read_at: string | null;
   reply_to_id: string | null;
+  file_url?: string | null;
+  file_name?: string | null;
+  file_type?: string | null;
+  video_url?: string | null;
 }
 
 interface ProfileData {
@@ -105,6 +109,9 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
@@ -115,6 +122,8 @@ export default function ChatPage() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
@@ -359,6 +368,56 @@ export default function ChatPage() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const clearFile = () => {
+    setSelectedFile(null);
+    if (docInputRef.current) docInputRef.current.value = "";
+  };
+
+  const clearVideo = () => {
+    setSelectedVideo(null);
+    if (videoPreview) URL.revokeObjectURL(videoPreview);
+    setVideoPreview(null);
+    if (videoInputRef.current) videoInputRef.current.value = "";
+  };
+
+  const handleDocSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Max 50MB per file." });
+      return;
+    }
+    setSelectedFile(file);
+  };
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      toast({ title: "Video too large", description: "Max 50MB per video." });
+      return;
+    }
+    setSelectedVideo(file);
+    setVideoPreview(URL.createObjectURL(file));
+  };
+
+  const downloadUrl = async (url: string, filename: string) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+    } catch {
+      window.open(url, "_blank");
+    }
+  };
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -428,7 +487,7 @@ export default function ChatPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!newMsg.trim() && !selectedImage) || !user) return;
+    if ((!newMsg.trim() && !selectedImage && !selectedFile && !selectedVideo) || !user) return;
     setSending(true);
 
     const msgContent = newMsg.trim();
@@ -439,6 +498,10 @@ export default function ChatPage() {
     setReplyTo(null);
 
     let image_url: string | null = null;
+    let file_url: string | null = null;
+    let file_name: string | null = null;
+    let file_type: string | null = null;
+    let video_url: string | null = null;
 
     if (selectedImage) {
       const ext = selectedImage.name.split(".").pop();
@@ -454,7 +517,29 @@ export default function ChatPage() {
       }
     }
 
+    if (selectedVideo) {
+      const ext = selectedVideo.name.split(".").pop();
+      const path = `${user.id}/${Date.now()}-vid.${ext}`;
+      const { error } = await supabase.storage.from("chat-files").upload(path, selectedVideo, { contentType: selectedVideo.type });
+      if (!error) {
+        video_url = supabase.storage.from("chat-files").getPublicUrl(path).data.publicUrl;
+      }
+    }
+
+    if (selectedFile) {
+      const safeName = selectedFile.name.replace(/[^\w.\-]/g, "_");
+      const path = `${user.id}/${Date.now()}-${safeName}`;
+      const { error } = await supabase.storage.from("chat-files").upload(path, selectedFile, { contentType: selectedFile.type });
+      if (!error) {
+        file_url = supabase.storage.from("chat-files").getPublicUrl(path).data.publicUrl;
+        file_name = selectedFile.name;
+        file_type = selectedFile.type || "application/octet-stream";
+      }
+    }
+
     clearImage();
+    clearFile();
+    clearVideo();
 
     // Retry up to 3 times on failure
     let attempts = 0;
@@ -465,7 +550,11 @@ export default function ChatPage() {
         content: msgContent,
         image_url,
         reply_to_id: replyId,
-      });
+        file_url,
+        file_name,
+        file_type,
+        video_url,
+      } as any);
       if (!error) {
         success = true;
       } else {
