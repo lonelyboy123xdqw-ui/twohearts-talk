@@ -19,31 +19,43 @@ export type Database = {
           audio_url: string | null
           content: string
           created_at: string
+          file_name: string | null
+          file_type: string | null
+          file_url: string | null
           id: string
           image_url: string | null
           read_at: string | null
           reply_to_id: string | null
           sender_id: string
+          video_url: string | null
         }
         Insert: {
           audio_url?: string | null
           content: string
           created_at?: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           image_url?: string | null
           read_at?: string | null
           reply_to_id?: string | null
           sender_id: string
+          video_url?: string | null
         }
         Update: {
           audio_url?: string | null
           content?: string
           created_at?: string
+          file_name?: string | null
+          file_type?: string | null
+          file_url?: string | null
           id?: string
           image_url?: string | null
           read_at?: string | null
           reply_to_id?: string | null
           sender_id?: string
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -84,7 +96,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      extract_storage_path: {
+        Args: { bucket: string; public_url: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
