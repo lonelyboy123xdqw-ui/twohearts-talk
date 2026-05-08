@@ -116,6 +116,8 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isAtBottomRef = useRef(true);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -313,7 +315,22 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const threshold = 80;
+      isAtBottomRef.current =
+        el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+    };
+    el.addEventListener("scroll", onScroll);
+    onScroll();
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (isAtBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages, partnerTyping]);
 
   // Mark unread messages from partner as read
@@ -506,7 +523,7 @@ export default function ChatPage() {
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-hide">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-hide">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
             <Heart className="w-10 h-10 mb-2 text-primary/30" />
