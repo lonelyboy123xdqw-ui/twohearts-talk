@@ -122,6 +122,7 @@ export default function ChatPage() {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [, setNowTick] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -145,6 +146,12 @@ export default function ChatPage() {
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
     };
+  }, []);
+
+  // Tick every 30s so "last seen X ago" stays fresh
+  useEffect(() => {
+    const t = setInterval(() => setNowTick((n) => n + 1), 30000);
+    return () => clearInterval(t);
   }, []);
 
   // Presence tracking — broadcasts which users are currently connected
