@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Square, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film } from "lucide-react";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
 
@@ -99,6 +99,7 @@ interface ProfileData {
   user_id: string;
   display_name: string;
   avatar_url: string | null;
+  last_seen?: string | null;
 }
 
 export default function ChatPage() {
@@ -236,14 +237,53 @@ export default function ChatPage() {
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("user_id, display_name, avatar_url")
+      .select("user_id, display_name, avatar_url, last_seen")
       .then(({ data }) => {
         if (data) {
           const map: Record<string, ProfileData> = {};
-          data.forEach((p: any) => (map[p.user_id] = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url }));
+          data.forEach((p: any) => (map[p.user_id] = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen }));
           setProfiles(map);
         }
       });
+  }, []);
+
+  // Update own last_seen periodically while tab is active, and on unload
+  useEffect(() => {
+    if (!user) return;
+    const ping = () => {
+      supabase.from("profiles").update({ last_seen: new Date().toISOString() } as any).eq("user_id", user.id).then();
+    };
+    ping();
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") ping();
+    }, 30000);
+    const onHide = () => ping();
+    window.addEventListener("beforeunload", onHide);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("beforeunload", onHide);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [user]);
+
+  // Subscribe to profile updates so we see partner's last_seen change in realtime
+  useEffect(() => {
+    const channel = supabase
+      .channel("profiles-realtime")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        (payload) => {
+          const p = payload.new as any;
+          setProfiles((prev) => ({
+            ...prev,
+            [p.user_id]: { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen },
+          }));
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const fetchMessages = useCallback(async () => {
@@ -640,7 +680,13 @@ export default function ChatPage() {
                 return (
                   <span className="flex items-center gap-1.5 truncate">
                     <span className={`w-1.5 h-1.5 rounded-full ${partnerOnline ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.8)]" : "bg-muted-foreground/50"}`} />
-                    <span className="truncate">{partner.display_name} · {partnerOnline ? "online" : "offline"}</span>
+                    <span className="truncate">
+                      {partner.display_name} · {partnerOnline
+                        ? "online"
+                        : partner.last_seen
+                          ? `last seen ${formatDistanceToNow(new Date(partner.last_seen), { addSuffix: true })}`
+                          : "offline"}
+                    </span>
                   </span>
                 );
               })()}
