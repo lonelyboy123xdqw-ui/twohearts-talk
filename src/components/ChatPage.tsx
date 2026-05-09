@@ -823,18 +823,18 @@ export default function ChatPage() {
                   {msg.audio_url && <AudioPlayer src={msg.audio_url} />}
                   {msg.content && <MessageContent text={msg.content} />}
                   <div className="flex items-center justify-end gap-1 mt-1">
-                    <p className="text-[10px] text-muted-foreground">
+                    <p className={`text-[10px] ${isMine(msg) ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
                       {format(new Date(msg.created_at), "h:mm a")}
                     </p>
                     {isMine(msg) && (
                       msg.read_at
-                        ? <CheckCheck className="w-3.5 h-3.5 text-sky-400" />
+                        ? <CheckCheck className="w-4 h-4 text-sky-300 drop-shadow-[0_0_2px_rgba(0,0,0,0.4)]" />
                         : (() => {
                             const partner = Object.values(profiles).find((p) => p.user_id !== user?.id);
                             const delivered = partner ? onlineUsers.has(partner.user_id) : false;
                             return delivered
-                              ? <CheckCheck className="w-3.5 h-3.5 text-muted-foreground" />
-                              : <Check className="w-3.5 h-3.5 text-muted-foreground" />;
+                              ? <CheckCheck className="w-4 h-4 text-primary-foreground/80" />
+                              : <Check className="w-4 h-4 text-primary-foreground/80" />;
                           })()
                     )}
                   </div>
