@@ -652,17 +652,17 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="relative flex flex-col h-[100dvh] w-full max-w-2xl mx-auto">
+    <div className="relative flex flex-col h-[100dvh] w-full max-w-3xl mx-auto">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
-        <div className="flex items-center gap-3 min-w-0">
+      <header className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <div className="relative shrink-0">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
               <Heart className="w-4 h-4 text-primary-foreground" fill="currentColor" />
             </div>
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-semibold text-base bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <span className="font-semibold text-sm sm:text-base bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Us Only
             </span>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -710,7 +710,7 @@ export default function ChatPage() {
       </header>
 
       {/* Messages */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-hide">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
             <Heart className="w-10 h-10 mb-2 text-primary/30" />
@@ -750,7 +750,7 @@ export default function ChatPage() {
                   </button>
                 )}
                 <div
-                  className={`max-w-[80%] sm:max-w-[65%] rounded-2xl px-4 py-2.5 shadow-md backdrop-blur-sm ${
+                  className={`max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-md backdrop-blur-sm ${
                     isMine(msg)
                       ? "bg-gradient-to-br from-primary/90 to-accent/80 text-primary-foreground rounded-br-sm shadow-primary/20"
                       : "bg-chat-theirs/80 rounded-bl-sm border border-border/40"
@@ -936,7 +936,7 @@ export default function ChatPage() {
       {!isRecording && (
         <form
           onSubmit={handleSend}
-          className="flex items-center gap-2 px-4 py-3 border-t border-border bg-card"
+          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 border-t border-border bg-card"
         >
           <input
             type="file"
