@@ -828,8 +828,14 @@ export default function ChatPage() {
                     </p>
                     {isMine(msg) && (
                       msg.read_at
-                        ? <CheckCheck className="w-3.5 h-3.5 text-primary" />
-                        : <Check className="w-3.5 h-3.5 text-muted-foreground" />
+                        ? <CheckCheck className="w-3.5 h-3.5 text-sky-400" />
+                        : (() => {
+                            const partner = Object.values(profiles).find((p) => p.user_id !== user?.id);
+                            const delivered = partner ? onlineUsers.has(partner.user_id) : false;
+                            return delivered
+                              ? <CheckCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                              : <Check className="w-3.5 h-3.5 text-muted-foreground" />;
+                          })()
                     )}
                   </div>
                 </div>
