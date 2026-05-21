@@ -136,6 +136,7 @@ export default function ChatPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const markedReadRef = useRef<Set<string>>(new Set());
 
   // Online/offline detection
   useEffect(() => {
@@ -410,9 +411,14 @@ export default function ChatPage() {
   // Mark unread messages from partner as read
   useEffect(() => {
     if (!user) return;
-    const unread = messages.filter((m) => m.sender_id !== user.id && !m.read_at);
-    if (unread.length === 0) return;
-    const ids = unread.map((m) => m.id);
+    const ids: string[] = [];
+    for (const m of messages) {
+      if (m.sender_id !== user.id && !m.read_at && !markedReadRef.current.has(m.id)) {
+        ids.push(m.id);
+        markedReadRef.current.add(m.id);
+      }
+    }
+    if (ids.length === 0) return;
     supabase
       .from("messages")
       .update({ read_at: new Date().toISOString() })
