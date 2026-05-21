@@ -644,10 +644,17 @@ export default function ChatPage() {
 
   const isMine = (msg: Message) => msg.sender_id === user?.id;
 
-  const getRepliedMessage = (replyId: string | null) => {
-    if (!replyId) return null;
-    return messages.find((m) => m.id === replyId) || null;
-  };
+  const messagesById = useMemo(() => {
+    const m = new Map<string, Message>();
+    for (const msg of messages) m.set(msg.id, msg);
+    return m;
+  }, [messages]);
+
+  const partner = useMemo(
+    () => Object.values(profiles).find((p) => p.user_id !== user?.id) || null,
+    [profiles, user?.id]
+  );
+  const partnerOnline = partner ? onlineUsers.has(partner.user_id) : false;
 
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
