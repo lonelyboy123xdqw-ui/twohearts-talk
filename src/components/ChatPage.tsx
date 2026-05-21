@@ -299,7 +299,7 @@ export default function ChatPage() {
       .from("messages")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(10000);
+      .limit(500);
     if (data) setMessages(data.reverse());
   }, []);
 
@@ -346,23 +346,16 @@ export default function ChatPage() {
     };
   }, []);
 
-  // Auto-refresh on tab focus / visibility change & periodic heartbeat
+  // Refetch when tab regains focus (realtime covers the rest — no heartbeat needed)
   useEffect(() => {
-    const onFocus = () => fetchMessages();
     const onVisible = () => {
       if (document.visibilityState === "visible") fetchMessages();
     };
-
-    window.addEventListener("focus", onFocus);
+    window.addEventListener("focus", fetchMessages);
     document.addEventListener("visibilitychange", onVisible);
-
-    // Heartbeat: refetch every 30s to catch missed messages
-    const interval = setInterval(fetchMessages, 30000);
-
     return () => {
-      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("focus", fetchMessages);
       document.removeEventListener("visibilitychange", onVisible);
-      clearInterval(interval);
     };
   }, [fetchMessages]);
 
