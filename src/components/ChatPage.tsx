@@ -408,22 +408,34 @@ export default function ChatPage() {
     }
   }, [messages, partnerTyping]);
 
-  // Mark unread messages from partner as read
+  // Mark unread messages from partner as read — only when the chat is actually visible
   useEffect(() => {
     if (!user) return;
-    const ids: string[] = [];
-    for (const m of messages) {
-      if (m.sender_id !== user.id && !m.read_at && !markedReadRef.current.has(m.id)) {
-        ids.push(m.id);
-        markedReadRef.current.add(m.id);
+
+    const markVisible = () => {
+      if (document.visibilityState !== "visible" || !document.hasFocus()) return;
+      const ids: string[] = [];
+      for (const m of messages) {
+        if (m.sender_id !== user.id && !m.read_at && !markedReadRef.current.has(m.id)) {
+          ids.push(m.id);
+          markedReadRef.current.add(m.id);
+        }
       }
-    }
-    if (ids.length === 0) return;
-    supabase
-      .from("messages")
-      .update({ read_at: new Date().toISOString() })
-      .in("id", ids)
-      .then();
+      if (ids.length === 0) return;
+      supabase
+        .from("messages")
+        .update({ read_at: new Date().toISOString() })
+        .in("id", ids)
+        .then();
+    };
+
+    markVisible();
+    window.addEventListener("focus", markVisible);
+    document.addEventListener("visibilitychange", markVisible);
+    return () => {
+      window.removeEventListener("focus", markVisible);
+      document.removeEventListener("visibilitychange", markVisible);
+    };
   }, [messages, user]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
