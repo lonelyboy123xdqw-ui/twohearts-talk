@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,14 @@ import { toast } from "@/hooks/use-toast";
 
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+const URL_TEST = /^https?:\/\//;
 
-function MessageContent({ text }: { text: string }) {
+const MessageContent = memo(function MessageContent({ text }: { text: string }) {
   const parts = text.split(URL_REGEX);
   return (
     <p className="text-sm leading-relaxed break-words">
       {parts.map((part, i) =>
-        URL_REGEX.test(part) ? (
+        URL_TEST.test(part) ? (
           <a
             key={i}
             href={part}
@@ -33,7 +34,7 @@ function MessageContent({ text }: { text: string }) {
       )}
     </p>
   );
-}
+});
 
 function AudioPlayer({ src }: { src: string }) {
   const [playing, setPlaying] = useState(false);
