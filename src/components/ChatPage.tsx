@@ -681,7 +681,6 @@ export default function ChatPage() {
             </span>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               {(() => {
-                const partner = Object.values(profiles).find((p) => p.user_id !== user?.id);
                 if (!partner) {
                   return (
                     <span className="flex items-center gap-1">
@@ -690,7 +689,6 @@ export default function ChatPage() {
                     </span>
                   );
                 }
-                const partnerOnline = onlineUsers.has(partner.user_id);
                 return (
                   <span className="flex items-center gap-1.5 truncate">
                     <span className={`w-1.5 h-1.5 rounded-full ${partnerOnline ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.8)]" : "bg-muted-foreground/50"}`} />
@@ -732,7 +730,7 @@ export default function ChatPage() {
           </div>
         )}
         {messages.map((msg) => {
-          const repliedMsg = getRepliedMessage(msg.reply_to_id);
+          const repliedMsg = msg.reply_to_id ? messagesById.get(msg.reply_to_id) || null : null;
           return (
             <div
               key={msg.id}
@@ -836,13 +834,9 @@ export default function ChatPage() {
                     {isMine(msg) && (
                       msg.read_at
                         ? <CheckCheck className="w-4 h-4 text-sky-300 drop-shadow-[0_0_2px_rgba(0,0,0,0.4)]" />
-                        : (() => {
-                            const partner = Object.values(profiles).find((p) => p.user_id !== user?.id);
-                            const delivered = partner ? onlineUsers.has(partner.user_id) : false;
-                            return delivered
-                              ? <CheckCheck className="w-4 h-4 text-primary-foreground/80" />
-                              : <Check className="w-4 h-4 text-primary-foreground/80" />;
-                          })()
+                        : (partnerOnline
+                            ? <CheckCheck className="w-4 h-4 text-primary-foreground/80" />
+                            : <Check className="w-4 h-4 text-primary-foreground/80" />)
                     )}
                   </div>
                 </div>
