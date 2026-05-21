@@ -137,6 +137,7 @@ export default function ChatPage() {
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const markedReadRef = useRef<Set<string>>(new Set());
+  const lastTypingSentRef = useRef(0);
 
   // Online/offline detection
   useEffect(() => {
@@ -382,6 +383,10 @@ export default function ChatPage() {
   }, [user]);
 
   const broadcastTyping = () => {
+    const now = Date.now();
+    // Throttle: at most one broadcast per 1.2s
+    if (now - lastTypingSentRef.current < 1200) return;
+    lastTypingSentRef.current = now;
     typingChannelRef.current?.send({
       type: "broadcast",
       event: "typing",
@@ -404,7 +409,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (isAtBottomRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      bottomRef.current?.scrollIntoView({ behavior: "auto" });
     }
   }, [messages, partnerTyping]);
 
