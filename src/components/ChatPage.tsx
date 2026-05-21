@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,14 @@ import { toast } from "@/hooks/use-toast";
 
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+const URL_TEST = /^https?:\/\//;
 
-function MessageContent({ text }: { text: string }) {
+const MessageContent = memo(function MessageContent({ text }: { text: string }) {
   const parts = text.split(URL_REGEX);
   return (
     <p className="text-sm leading-relaxed break-words">
       {parts.map((part, i) =>
-        URL_REGEX.test(part) ? (
+        URL_TEST.test(part) ? (
           <a
             key={i}
             href={part}
@@ -33,7 +34,7 @@ function MessageContent({ text }: { text: string }) {
       )}
     </p>
   );
-}
+});
 
 function AudioPlayer({ src }: { src: string }) {
   const [playing, setPlaying] = useState(false);
@@ -135,6 +136,7 @@ export default function ChatPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const markedReadRef = useRef<Set<string>>(new Set());
 
   // Online/offline detection
   useEffect(() => {
@@ -298,7 +300,7 @@ export default function ChatPage() {
       .from("messages")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(10000);
+      .limit(500);
     if (data) setMessages(data.reverse());
   }, []);
 
@@ -345,23 +347,16 @@ export default function ChatPage() {
     };
   }, []);
 
-  // Auto-refresh on tab focus / visibility change & periodic heartbeat
+  // Refetch when tab regains focus (realtime covers the rest — no heartbeat needed)
   useEffect(() => {
-    const onFocus = () => fetchMessages();
     const onVisible = () => {
       if (document.visibilityState === "visible") fetchMessages();
     };
-
-    window.addEventListener("focus", onFocus);
+    window.addEventListener("focus", fetchMessages);
     document.addEventListener("visibilitychange", onVisible);
-
-    // Heartbeat: refetch every 30s to catch missed messages
-    const interval = setInterval(fetchMessages, 30000);
-
     return () => {
-      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("focus", fetchMessages);
       document.removeEventListener("visibilitychange", onVisible);
-      clearInterval(interval);
     };
   }, [fetchMessages]);
 
@@ -416,9 +411,14 @@ export default function ChatPage() {
   // Mark unread messages from partner as read
   useEffect(() => {
     if (!user) return;
-    const unread = messages.filter((m) => m.sender_id !== user.id && !m.read_at);
-    if (unread.length === 0) return;
-    const ids = unread.map((m) => m.id);
+    const ids: string[] = [];
+    for (const m of messages) {
+      if (m.sender_id !== user.id && !m.read_at && !markedReadRef.current.has(m.id)) {
+        ids.push(m.id);
+        markedReadRef.current.add(m.id);
+      }
+    }
+    if (ids.length === 0) return;
     supabase
       .from("messages")
       .update({ read_at: new Date().toISOString() })
@@ -644,10 +644,17 @@ export default function ChatPage() {
 
   const isMine = (msg: Message) => msg.sender_id === user?.id;
 
-  const getRepliedMessage = (replyId: string | null) => {
-    if (!replyId) return null;
-    return messages.find((m) => m.id === replyId) || null;
-  };
+  const messagesById = useMemo(() => {
+    const m = new Map<string, Message>();
+    for (const msg of messages) m.set(msg.id, msg);
+    return m;
+  }, [messages]);
+
+  const partner = useMemo(
+    () => Object.values(profiles).find((p) => p.user_id !== user?.id) || null,
+    [profiles, user?.id]
+  );
+  const partnerOnline = partner ? onlineUsers.has(partner.user_id) : false;
 
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
@@ -674,7 +681,6 @@ export default function ChatPage() {
             </span>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               {(() => {
-                const partner = Object.values(profiles).find((p) => p.user_id !== user?.id);
                 if (!partner) {
                   return (
                     <span className="flex items-center gap-1">
@@ -683,7 +689,6 @@ export default function ChatPage() {
                     </span>
                   );
                 }
-                const partnerOnline = onlineUsers.has(partner.user_id);
                 return (
                   <span className="flex items-center gap-1.5 truncate">
                     <span className={`w-1.5 h-1.5 rounded-full ${partnerOnline ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.8)]" : "bg-muted-foreground/50"}`} />
@@ -725,7 +730,7 @@ export default function ChatPage() {
           </div>
         )}
         {messages.map((msg) => {
-          const repliedMsg = getRepliedMessage(msg.reply_to_id);
+          const repliedMsg = msg.reply_to_id ? messagesById.get(msg.reply_to_id) || null : null;
           return (
             <div
               key={msg.id}
@@ -829,13 +834,9 @@ export default function ChatPage() {
                     {isMine(msg) && (
                       msg.read_at
                         ? <CheckCheck className="w-4 h-4 text-sky-300 drop-shadow-[0_0_2px_rgba(0,0,0,0.4)]" />
-                        : (() => {
-                            const partner = Object.values(profiles).find((p) => p.user_id !== user?.id);
-                            const delivered = partner ? onlineUsers.has(partner.user_id) : false;
-                            return delivered
-                              ? <CheckCheck className="w-4 h-4 text-primary-foreground/80" />
-                              : <Check className="w-4 h-4 text-primary-foreground/80" />;
-                          })()
+                        : (partnerOnline
+                            ? <CheckCheck className="w-4 h-4 text-primary-foreground/80" />
+                            : <Check className="w-4 h-4 text-primary-foreground/80" />)
                     )}
                   </div>
                 </div>
