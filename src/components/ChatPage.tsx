@@ -281,17 +281,50 @@ export default function ChatPage() {
   const playPing = useCallback(() => {
     try {
       const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = 880;
-      osc.type = "sine";
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.3);
-      setTimeout(() => ctx.close(), 500);
+      // Cheerful 3-note chime (E6 → A6 → C#7) with soft bell-like decay
+      const master = ctx.createGain();
+      master.gain.value = 0.9; // overall louder
+      master.connect(ctx.destination);
+
+      const notes = [
+        { f: 1318.51, t: 0.0 },  // E6
+        { f: 1760.0,  t: 0.14 }, // A6
+        { f: 2217.46, t: 0.28 }, // C#7
+      ];
+
+      notes.forEach(({ f, t }) => {
+        const start = ctx.currentTime + t;
+        // Fundamental
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = f;
+        // Subtle harmonic for a bell shimmer
+        const osc2 = ctx.createOscillator();
+        osc2.type = "triangle";
+        osc2.frequency.value = f * 2;
+
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, start);
+        g.gain.exponentialRampToValueAtTime(0.85, start + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0005, start + 0.55);
+
+        const g2 = ctx.createGain();
+        g2.gain.setValueAtTime(0.0001, start);
+        g2.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
+        g2.gain.exponentialRampToValueAtTime(0.0005, start + 0.45);
+
+        osc.connect(g).connect(master);
+        osc2.connect(g2).connect(master);
+        osc.start(start); osc2.start(start);
+        osc.stop(start + 0.6); osc2.stop(start + 0.6);
+      });
+
+      setTimeout(() => ctx.close(), 1200);
+
+      // Vibrate on mobile for extra discoverability
+      if ("vibrate" in navigator) {
+        navigator.vibrate?.([60, 40, 80]);
+      }
     } catch {
       return;
     }
