@@ -186,6 +186,16 @@ export default function ChatPage() {
   const pendingMessageUpdatesRef = useRef<Map<string, Message>>(new Map());
   const messageUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [visibleCount, setVisibleCount] = useState(120);
+  const profilesRef = useRef<Record<string, ProfileData>>({});
+  const userIdRef = useRef<string | undefined>(user?.id);
+
+  useEffect(() => {
+    profilesRef.current = profiles;
+  }, [profiles]);
+
+  useEffect(() => {
+    userIdRef.current = user?.id;
+  }, [user?.id]);
 
   // Online/offline detection
   useEffect(() => {
@@ -234,7 +244,7 @@ export default function ChatPage() {
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
 
