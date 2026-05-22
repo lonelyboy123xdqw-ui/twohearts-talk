@@ -4,13 +4,41 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Square, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 const URL_TEST = /^https?:\/\//;
+const TYPING_THROTTLE_MS = 1800;
+const MESSAGE_UPDATE_BATCH_MS = 80;
+
+const areStringSetsEqual = (a: Set<string>, b: Set<string>) => {
+  if (a.size !== b.size) return false;
+  for (const value of a) if (!b.has(value)) return false;
+  return true;
+};
+
+const areMessagesEqual = (a: Message, b: Message) =>
+  a.id === b.id &&
+  a.sender_id === b.sender_id &&
+  a.content === b.content &&
+  a.created_at === b.created_at &&
+  a.image_url === b.image_url &&
+  a.audio_url === b.audio_url &&
+  a.read_at === b.read_at &&
+  a.reply_to_id === b.reply_to_id &&
+  a.file_url === b.file_url &&
+  a.file_name === b.file_name &&
+  a.file_type === b.file_type &&
+  a.video_url === b.video_url;
+
+const areMessageListsEqual = (a: Message[], b: Message[]) => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (!areMessagesEqual(a[i], b[i])) return false;
+  return true;
+};
 
 const MessageContent = memo(function MessageContent({ text }: { text: string }) {
   const parts = text.split(URL_REGEX);
@@ -43,16 +71,22 @@ function AudioPlayer({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const audio = new Audio(src);
-    audioRef.current = audio;
-    audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
-    audio.addEventListener("timeupdate", () => setProgress(audio.currentTime));
-    audio.addEventListener("ended", () => { setPlaying(false); setProgress(0); });
-    return () => { audio.pause(); audio.remove(); };
+    return () => {
+      audioRef.current?.pause();
+      audioRef.current?.remove();
+      audioRef.current = null;
+    };
   }, [src]);
 
   const toggle = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current) {
+      const audio = new Audio(src);
+      audio.preload = "metadata";
+      audioRef.current = audio;
+      audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
+      audio.addEventListener("timeupdate", () => setProgress(audio.currentTime));
+      audio.addEventListener("ended", () => { setPlaying(false); setProgress(0); });
+    }
     if (playing) { audioRef.current.pause(); } else { audioRef.current.play(); }
     setPlaying(!playing);
   };
@@ -103,6 +137,16 @@ interface ProfileData {
   last_seen?: string | null;
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
+
+type ProfileUpdate = Partial<ProfileData> & { user_id: string };
+type MessageInsert = Omit<Message, "id" | "created_at" | "read_at"> & {
+  read_at?: string | null;
+};
+
 export default function ChatPage() {
   const { user, signOut } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -116,8 +160,9 @@ export default function ChatPage() {
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const partnerTypingRef = useRef(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -138,6 +183,19 @@ export default function ChatPage() {
   const audioChunksRef = useRef<Blob[]>([]);
   const markedReadRef = useRef<Set<string>>(new Set());
   const lastTypingSentRef = useRef(0);
+  const pendingMessageUpdatesRef = useRef<Map<string, Message>>(new Map());
+  const messageUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [visibleCount, setVisibleCount] = useState(120);
+  const profilesRef = useRef<Record<string, ProfileData>>({});
+  const userIdRef = useRef<string | undefined>(user?.id);
+
+  useEffect(() => {
+    profilesRef.current = profiles;
+  }, [profiles]);
+
+  useEffect(() => {
+    userIdRef.current = user?.id;
+  }, [user?.id]);
 
   // Online/offline detection
   useEffect(() => {
@@ -167,7 +225,8 @@ export default function ChatPage() {
     channel
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
-        setOnlineUsers(new Set(Object.keys(state)));
+        const nextUsers = new Set(Object.keys(state));
+        setOnlineUsers((prev) => (areStringSetsEqual(prev, nextUsers) ? prev : nextUsers));
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
@@ -176,6 +235,7 @@ export default function ChatPage() {
       });
 
     return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       supabase.removeChannel(channel);
     };
   }, [user]);
@@ -184,7 +244,7 @@ export default function ChatPage() {
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
 
@@ -218,7 +278,7 @@ export default function ChatPage() {
     }
   }, []);
 
-  const playPing = () => {
+  const playPing = useCallback(() => {
     try {
       const ctx = new AudioContext();
       const osc = ctx.createOscillator();
@@ -232,17 +292,19 @@ export default function ChatPage() {
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.3);
       setTimeout(() => ctx.close(), 500);
-    } catch {}
-  };
+    } catch {
+      return;
+    }
+  }, []);
 
-  const notifyNewMessage = (msg: Message) => {
+  const notifyNewMessage = useCallback((msg: Message) => {
     playPing();
     if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
-      const senderName = profiles[msg.sender_id]?.display_name || "Your Love";
+      const senderName = profilesRef.current[msg.sender_id]?.display_name || "Your Love";
       const body = msg.image_url && !msg.content ? "📷 Sent a photo" : msg.content;
       new Notification(`${senderName} 💕`, { body });
     }
-  };
+  }, [playPing]);
 
   useEffect(() => {
     supabase
@@ -251,7 +313,7 @@ export default function ChatPage() {
       .then(({ data }) => {
         if (data) {
           const map: Record<string, ProfileData> = {};
-          data.forEach((p: any) => (map[p.user_id] = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen }));
+          data.forEach((p: ProfileData) => (map[p.user_id] = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen }));
           setProfiles(map);
         }
       });
@@ -261,7 +323,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!user) return;
     const ping = () => {
-      supabase.from("profiles").update({ last_seen: new Date().toISOString() } as any).eq("user_id", user.id).then();
+      supabase.from("profiles").update({ last_seen: new Date().toISOString() } as ProfileUpdate).eq("user_id", user.id).then();
     };
     ping();
     const interval = setInterval(() => {
@@ -285,16 +347,26 @@ export default function ChatPage() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles" },
         (payload) => {
-          const p = payload.new as any;
-          setProfiles((prev) => ({
-            ...prev,
-            [p.user_id]: { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen },
-          }));
+          const p = payload.new as ProfileData;
+          const nextProfile = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen };
+          setProfiles((prev) => {
+            const current = prev[p.user_id];
+            if (p.user_id === user?.id && current?.last_seen !== nextProfile.last_seen) return prev;
+            if (
+              current &&
+              current.display_name === nextProfile.display_name &&
+              current.avatar_url === nextProfile.avatar_url &&
+              current.last_seen === nextProfile.last_seen
+            ) {
+              return prev;
+            }
+            return { ...prev, [p.user_id]: nextProfile };
+          });
         }
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [user?.id]);
 
   const fetchMessages = useCallback(async () => {
     const { data } = await supabase
@@ -302,12 +374,38 @@ export default function ChatPage() {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(500);
-    if (data) setMessages(data.reverse());
+    if (data) {
+      const nextMessages = data.reverse() as Message[];
+      setMessages((prev) => (areMessageListsEqual(prev, nextMessages) ? prev : nextMessages));
+    }
   }, []);
 
   // Fetch messages and subscribe to realtime
   useEffect(() => {
     fetchMessages();
+
+    const flushMessageUpdates = () => {
+      const updates = pendingMessageUpdatesRef.current;
+      if (updates.size === 0) return;
+      pendingMessageUpdatesRef.current = new Map();
+      messageUpdateTimerRef.current = null;
+      setMessages((prev) => {
+        let changed = false;
+        const next = prev.map((m) => {
+          const update = updates.get(m.id);
+          if (!update || areMessagesEqual(m, update)) return m;
+          changed = true;
+          return update;
+        });
+        return changed ? next : prev;
+      });
+    };
+
+    const queueMessageUpdate = (message: Message) => {
+      pendingMessageUpdatesRef.current.set(message.id, message);
+      if (messageUpdateTimerRef.current) return;
+      messageUpdateTimerRef.current = setTimeout(flushMessageUpdates, MESSAGE_UPDATE_BATCH_MS);
+    };
 
     const channel = supabase
       .channel("messages-realtime")
@@ -329,9 +427,7 @@ export default function ChatPage() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "messages" },
         (payload) => {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === (payload.new as Message).id ? (payload.new as Message) : m))
-          );
+          queueMessageUpdate(payload.new as Message);
         }
       )
       .subscribe((status) => {
@@ -344,9 +440,10 @@ export default function ChatPage() {
       });
 
     return () => {
+      if (messageUpdateTimerRef.current) clearTimeout(messageUpdateTimerRef.current);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchMessages, notifyNewMessage, user?.id]);
 
   // Refetch when tab regains focus (realtime covers the rest — no heartbeat needed)
   useEffect(() => {
@@ -370,9 +467,15 @@ export default function ChatPage() {
     channel
       .on("broadcast", { event: "typing" }, ({ payload }) => {
         if (payload.user_id !== user.id) {
-          setPartnerTyping(true);
+          if (!partnerTypingRef.current) {
+            partnerTypingRef.current = true;
+            setPartnerTyping(true);
+          }
           if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-          typingTimeoutRef.current = setTimeout(() => setPartnerTyping(false), 2000);
+          typingTimeoutRef.current = setTimeout(() => {
+            partnerTypingRef.current = false;
+            setPartnerTyping(false);
+          }, 2000);
         }
       })
       .subscribe();
@@ -384,8 +487,8 @@ export default function ChatPage() {
 
   const broadcastTyping = () => {
     const now = Date.now();
-    // Throttle: at most one broadcast per 1.2s
-    if (now - lastTypingSentRef.current < 1200) return;
+    // Throttle: at most one broadcast every few keystrokes
+    if (now - lastTypingSentRef.current < TYPING_THROTTLE_MS) return;
     lastTypingSentRef.current = now;
     typingChannelRef.current?.send({
       type: "broadcast",
@@ -412,6 +515,10 @@ export default function ChatPage() {
       bottomRef.current?.scrollIntoView({ behavior: "auto" });
     }
   }, [messages, partnerTyping]);
+
+  useEffect(() => {
+    setVisibleCount((count) => Math.min(Math.max(count, 120), messages.length || 120));
+  }, [messages.length]);
 
   // Mark unread messages from partner as read — only when the chat is actually visible
   useEffect(() => {
@@ -530,12 +637,14 @@ export default function ChatPage() {
         const { error } = await supabase.storage.from("voice-messages").upload(path, blob);
         if (!error) {
           const { data: urlData } = supabase.storage.from("voice-messages").getPublicUrl(path);
-          await supabase.from("messages").insert({
+          const voiceMessage: MessageInsert = {
             sender_id: user.id,
             content: "",
+            image_url: null,
             audio_url: urlData.publicUrl,
             reply_to_id: replyTo?.id || null,
-          } as any);
+          };
+          await supabase.from("messages").insert(voiceMessage);
           setReplyTo(null);
         }
         setSending(false);
@@ -615,7 +724,7 @@ export default function ChatPage() {
     }
 
     if (selectedFile) {
-      const safeName = selectedFile.name.replace(/[^\w.\-]/g, "_");
+      const safeName = selectedFile.name.replace(/[^\w.-]/g, "_");
       const path = `${user.id}/${Date.now()}-${safeName}`;
       const { error } = await supabase.storage.from("chat-files").upload(path, selectedFile, { contentType: selectedFile.type });
       if (!error) {
@@ -632,17 +741,19 @@ export default function ChatPage() {
     // Retry up to 3 times on failure
     let attempts = 0;
     let success = false;
+    const outgoingMessage: MessageInsert = {
+      sender_id: user.id,
+      content: msgContent,
+      image_url,
+      audio_url: null,
+      reply_to_id: replyId,
+      file_url,
+      file_name,
+      file_type,
+      video_url,
+    };
     while (attempts < 3 && !success) {
-      const { error } = await supabase.from("messages").insert({
-        sender_id: user.id,
-        content: msgContent,
-        image_url,
-        reply_to_id: replyId,
-        file_url,
-        file_name,
-        file_type,
-        video_url,
-      } as any);
+      const { error } = await supabase.from("messages").insert(outgoingMessage);
       if (!error) {
         success = true;
       } else {
@@ -672,16 +783,21 @@ export default function ChatPage() {
     [profiles, user?.id]
   );
   const partnerOnline = partner ? onlineUsers.has(partner.user_id) : false;
+  const visibleMessages = useMemo(
+    () => messages.slice(Math.max(0, messages.length - visibleCount)),
+    [messages, visibleCount]
+  );
+  const hasHiddenMessages = visibleCount < messages.length;
 
   const renderedMessages = useMemo(() => {
-    return messages.map((msg) => {
+    return visibleMessages.map((msg) => {
       const mine = msg.sender_id === user?.id;
       const repliedMsg = msg.reply_to_id ? messagesById.get(msg.reply_to_id) || null : null;
       return (
         <div
           key={msg.id}
           id={`msg-${msg.id}`}
-          className={`group flex ${mine ? "justify-end" : "justify-start"} transition-all duration-300 rounded-2xl`}
+          className={`group flex ${mine ? "justify-end" : "justify-start"} rounded-2xl`}
         >
           <div className="flex items-end gap-1.5">
             {!mine && (
@@ -706,7 +822,7 @@ export default function ChatPage() {
               </button>
             )}
             <div
-              className={`max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-md backdrop-blur-sm ${
+              className={`max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm ${
                 mine
                   ? "bg-gradient-to-br from-primary/90 to-accent/80 text-primary-foreground rounded-br-sm shadow-primary/20"
                   : "bg-chat-theirs/80 rounded-bl-sm border border-border/40"
@@ -804,8 +920,7 @@ export default function ChatPage() {
         </div>
       );
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, messagesById, profiles, onlineUsers, partnerOnline, user?.id]);
+  }, [visibleMessages, messagesById, profiles, onlineUsers, partnerOnline, user?.id]);
 
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
@@ -873,11 +988,24 @@ export default function ChatPage() {
       </header>
 
       {/* Messages */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide overscroll-contain">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
             <Heart className="w-10 h-10 mb-2 text-primary/30" />
             <p>No messages yet. Say hi! 💕</p>
+          </div>
+        )}
+        {hasHiddenMessages && (
+          <div className="flex justify-center py-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setVisibleCount((count) => Math.min(messages.length, count + 120))}
+              className="h-8 text-xs"
+            >
+              Load older messages
+            </Button>
           </div>
         )}
         {renderedMessages}
