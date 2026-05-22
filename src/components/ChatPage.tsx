@@ -637,12 +637,14 @@ export default function ChatPage() {
         const { error } = await supabase.storage.from("voice-messages").upload(path, blob);
         if (!error) {
           const { data: urlData } = supabase.storage.from("voice-messages").getPublicUrl(path);
-          await supabase.from("messages").insert({
+          const voiceMessage: MessageInsert = {
             sender_id: user.id,
             content: "",
+            image_url: null,
             audio_url: urlData.publicUrl,
             reply_to_id: replyTo?.id || null,
-          } as any);
+          };
+          await supabase.from("messages").insert(voiceMessage);
           setReplyTo(null);
         }
         setSending(false);
@@ -722,7 +724,7 @@ export default function ChatPage() {
     }
 
     if (selectedFile) {
-      const safeName = selectedFile.name.replace(/[^\w.\-]/g, "_");
+      const safeName = selectedFile.name.replace(/[^\w.-]/g, "_");
       const path = `${user.id}/${Date.now()}-${safeName}`;
       const { error } = await supabase.storage.from("chat-files").upload(path, selectedFile, { contentType: selectedFile.type });
       if (!error) {
@@ -739,17 +741,19 @@ export default function ChatPage() {
     // Retry up to 3 times on failure
     let attempts = 0;
     let success = false;
+    const outgoingMessage: MessageInsert = {
+      sender_id: user.id,
+      content: msgContent,
+      image_url,
+      audio_url: null,
+      reply_to_id: replyId,
+      file_url,
+      file_name,
+      file_type,
+      video_url,
+    };
     while (attempts < 3 && !success) {
-      const { error } = await supabase.from("messages").insert({
-        sender_id: user.id,
-        content: msgContent,
-        image_url,
-        reply_to_id: replyId,
-        file_url,
-        file_name,
-        file_type,
-        video_url,
-      } as any);
+      const { error } = await supabase.from("messages").insert(outgoingMessage);
       if (!error) {
         success = true;
       } else {
