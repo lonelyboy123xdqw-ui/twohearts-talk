@@ -11,6 +11,28 @@ import { toast } from "@/hooks/use-toast";
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 const URL_TEST = /^https?:\/\//;
+const TYPING_THROTTLE_MS = 1800;
+const MESSAGE_UPDATE_BATCH_MS = 80;
+
+const areStringSetsEqual = (a: Set<string>, b: Set<string>) => {
+  if (a.size !== b.size) return false;
+  for (const value of a) if (!b.has(value)) return false;
+  return true;
+};
+
+const areMessagesEqual = (a: Message, b: Message) =>
+  a.id === b.id &&
+  a.sender_id === b.sender_id &&
+  a.content === b.content &&
+  a.created_at === b.created_at &&
+  a.image_url === b.image_url &&
+  a.audio_url === b.audio_url &&
+  a.read_at === b.read_at &&
+  a.reply_to_id === b.reply_to_id &&
+  a.file_url === b.file_url &&
+  a.file_name === b.file_name &&
+  a.file_type === b.file_type &&
+  a.video_url === b.video_url;
 
 const MessageContent = memo(function MessageContent({ text }: { text: string }) {
   const parts = text.split(URL_REGEX);
@@ -43,16 +65,22 @@ function AudioPlayer({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const audio = new Audio(src);
-    audioRef.current = audio;
-    audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
-    audio.addEventListener("timeupdate", () => setProgress(audio.currentTime));
-    audio.addEventListener("ended", () => { setPlaying(false); setProgress(0); });
-    return () => { audio.pause(); audio.remove(); };
+    return () => {
+      audioRef.current?.pause();
+      audioRef.current?.remove();
+      audioRef.current = null;
+    };
   }, [src]);
 
   const toggle = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current) {
+      const audio = new Audio(src);
+      audio.preload = "metadata";
+      audioRef.current = audio;
+      audio.addEventListener("loadedmetadata", () => setDuration(audio.duration));
+      audio.addEventListener("timeupdate", () => setProgress(audio.currentTime));
+      audio.addEventListener("ended", () => { setPlaying(false); setProgress(0); });
+    }
     if (playing) { audioRef.current.pause(); } else { audioRef.current.play(); }
     setPlaying(!playing);
   };
