@@ -920,7 +920,6 @@ export default function ChatPage() {
         </div>
       );
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleMessages, messagesById, profiles, onlineUsers, partnerOnline, user?.id]);
 
   const scrollToMessage = (msgId: string) => {
