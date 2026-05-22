@@ -34,6 +34,12 @@ const areMessagesEqual = (a: Message, b: Message) =>
   a.file_type === b.file_type &&
   a.video_url === b.video_url;
 
+const areMessageListsEqual = (a: Message[], b: Message[]) => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (!areMessagesEqual(a[i], b[i])) return false;
+  return true;
+};
+
 const MessageContent = memo(function MessageContent({ text }: { text: string }) {
   const parts = text.split(URL_REGEX);
   return (
@@ -144,6 +150,7 @@ export default function ChatPage() {
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const partnerTypingRef = useRef(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -166,6 +173,9 @@ export default function ChatPage() {
   const audioChunksRef = useRef<Blob[]>([]);
   const markedReadRef = useRef<Set<string>>(new Set());
   const lastTypingSentRef = useRef(0);
+  const pendingMessageUpdatesRef = useRef<Map<string, Message>>(new Map());
+  const messageUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [visibleCount, setVisibleCount] = useState(120);
 
   // Online/offline detection
   useEffect(() => {
