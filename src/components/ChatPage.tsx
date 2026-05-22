@@ -443,9 +443,15 @@ export default function ChatPage() {
     channel
       .on("broadcast", { event: "typing" }, ({ payload }) => {
         if (payload.user_id !== user.id) {
-          setPartnerTyping(true);
+          if (!partnerTypingRef.current) {
+            partnerTypingRef.current = true;
+            setPartnerTyping(true);
+          }
           if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-          typingTimeoutRef.current = setTimeout(() => setPartnerTyping(false), 2000);
+          typingTimeoutRef.current = setTimeout(() => {
+            partnerTypingRef.current = false;
+            setPartnerTyping(false);
+          }, 2000);
         }
       })
       .subscribe();
@@ -457,8 +463,8 @@ export default function ChatPage() {
 
   const broadcastTyping = () => {
     const now = Date.now();
-    // Throttle: at most one broadcast per 1.2s
-    if (now - lastTypingSentRef.current < 1200) return;
+    // Throttle: at most one broadcast every few keystrokes
+    if (now - lastTypingSentRef.current < TYPING_THROTTLE_MS) return;
     lastTypingSentRef.current = now;
     typingChannelRef.current?.send({
       type: "broadcast",
