@@ -443,7 +443,7 @@ export default function ChatPage() {
       if (messageUpdateTimerRef.current) clearTimeout(messageUpdateTimerRef.current);
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchMessages]);
 
   // Refetch when tab regains focus (realtime covers the rest — no heartbeat needed)
   useEffect(() => {
