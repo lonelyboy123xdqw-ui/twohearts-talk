@@ -137,6 +137,16 @@ interface ProfileData {
   last_seen?: string | null;
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+}
+
+type ProfileUpdate = Partial<ProfileData> & { user_id: string };
+type MessageInsert = Omit<Message, "id" | "created_at" | "read_at"> & {
+  read_at?: string | null;
+};
+
 export default function ChatPage() {
   const { user, signOut } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -152,7 +162,7 @@ export default function ChatPage() {
   const [partnerTyping, setPartnerTyping] = useState(false);
   const partnerTypingRef = useRef(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
