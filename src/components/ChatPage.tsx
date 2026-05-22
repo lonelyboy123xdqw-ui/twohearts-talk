@@ -292,13 +292,15 @@ export default function ChatPage() {
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.3);
       setTimeout(() => ctx.close(), 500);
-    } catch {}
+    } catch {
+      return;
+    }
   };
 
   const notifyNewMessage = (msg: Message) => {
     playPing();
     if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
-      const senderName = profiles[msg.sender_id]?.display_name || "Your Love";
+      const senderName = profilesRef.current[msg.sender_id]?.display_name || "Your Love";
       const body = msg.image_url && !msg.content ? "📷 Sent a photo" : msg.content;
       new Notification(`${senderName} 💕`, { body });
     }
@@ -311,7 +313,7 @@ export default function ChatPage() {
       .then(({ data }) => {
         if (data) {
           const map: Record<string, ProfileData> = {};
-          data.forEach((p: any) => (map[p.user_id] = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen }));
+          data.forEach((p: ProfileData) => (map[p.user_id] = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen }));
           setProfiles(map);
         }
       });
