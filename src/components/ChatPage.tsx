@@ -756,16 +756,21 @@ export default function ChatPage() {
     [profiles, user?.id]
   );
   const partnerOnline = partner ? onlineUsers.has(partner.user_id) : false;
+  const visibleMessages = useMemo(
+    () => messages.slice(Math.max(0, messages.length - visibleCount)),
+    [messages, visibleCount]
+  );
+  const hasHiddenMessages = visibleCount < messages.length;
 
   const renderedMessages = useMemo(() => {
-    return messages.map((msg) => {
+    return visibleMessages.map((msg) => {
       const mine = msg.sender_id === user?.id;
       const repliedMsg = msg.reply_to_id ? messagesById.get(msg.reply_to_id) || null : null;
       return (
         <div
           key={msg.id}
           id={`msg-${msg.id}`}
-          className={`group flex ${mine ? "justify-end" : "justify-start"} transition-all duration-300 rounded-2xl`}
+          className={`group flex ${mine ? "justify-end" : "justify-start"} rounded-2xl`}
         >
           <div className="flex items-end gap-1.5">
             {!mine && (
@@ -790,7 +795,7 @@ export default function ChatPage() {
               </button>
             )}
             <div
-              className={`max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-md backdrop-blur-sm ${
+              className={`max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm ${
                 mine
                   ? "bg-gradient-to-br from-primary/90 to-accent/80 text-primary-foreground rounded-br-sm shadow-primary/20"
                   : "bg-chat-theirs/80 rounded-bl-sm border border-border/40"
@@ -889,7 +894,7 @@ export default function ChatPage() {
       );
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, messagesById, profiles, onlineUsers, partnerOnline, user?.id]);
+  }, [visibleMessages, messagesById, profiles, onlineUsers, partnerOnline, user?.id]);
 
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
