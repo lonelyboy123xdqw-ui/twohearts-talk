@@ -329,6 +329,7 @@ export default function ChatPage() {
           const nextProfile = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen };
           setProfiles((prev) => {
             const current = prev[p.user_id];
+            if (p.user_id === user?.id && current?.last_seen !== nextProfile.last_seen) return prev;
             if (
               current &&
               current.display_name === nextProfile.display_name &&
@@ -343,7 +344,7 @@ export default function ChatPage() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [user?.id]);
 
   const fetchMessages = useCallback(async () => {
     const { data } = await supabase
