@@ -962,11 +962,24 @@ export default function ChatPage() {
       </header>
 
       {/* Messages */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide overscroll-contain">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
             <Heart className="w-10 h-10 mb-2 text-primary/30" />
             <p>No messages yet. Say hi! 💕</p>
+          </div>
+        )}
+        {hasHiddenMessages && (
+          <div className="flex justify-center py-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setVisibleCount((count) => Math.min(messages.length, count + 120))}
+              className="h-8 text-xs"
+            >
+              Load older messages
+            </Button>
           </div>
         )}
         {renderedMessages}
