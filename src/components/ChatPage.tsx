@@ -278,7 +278,7 @@ export default function ChatPage() {
     }
   }, []);
 
-  const playPing = () => {
+  const playPing = useCallback(() => {
     try {
       const ctx = new AudioContext();
       const osc = ctx.createOscillator();
@@ -295,16 +295,16 @@ export default function ChatPage() {
     } catch {
       return;
     }
-  };
+  }, []);
 
-  const notifyNewMessage = (msg: Message) => {
+  const notifyNewMessage = useCallback((msg: Message) => {
     playPing();
     if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
       const senderName = profilesRef.current[msg.sender_id]?.display_name || "Your Love";
       const body = msg.image_url && !msg.content ? "📷 Sent a photo" : msg.content;
       new Notification(`${senderName} 💕`, { body });
     }
-  };
+  }, [playPing]);
 
   useEffect(() => {
     supabase
