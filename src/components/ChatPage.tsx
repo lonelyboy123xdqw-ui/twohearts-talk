@@ -323,7 +323,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!user) return;
     const ping = () => {
-      supabase.from("profiles").update({ last_seen: new Date().toISOString() } as any).eq("user_id", user.id).then();
+      supabase.from("profiles").update({ last_seen: new Date().toISOString() } as ProfileUpdate).eq("user_id", user.id).then();
     };
     ping();
     const interval = setInterval(() => {
@@ -347,7 +347,7 @@ export default function ChatPage() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles" },
         (payload) => {
-          const p = payload.new as any;
+          const p = payload.new as ProfileData;
           const nextProfile = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen };
           setProfiles((prev) => {
             const current = prev[p.user_id];
