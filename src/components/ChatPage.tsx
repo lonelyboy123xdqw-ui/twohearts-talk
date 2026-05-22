@@ -205,7 +205,8 @@ export default function ChatPage() {
     channel
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState();
-        setOnlineUsers(new Set(Object.keys(state)));
+        const nextUsers = new Set(Object.keys(state));
+        setOnlineUsers((prev) => (areStringSetsEqual(prev, nextUsers) ? prev : nextUsers));
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
@@ -324,10 +325,19 @@ export default function ChatPage() {
         { event: "UPDATE", schema: "public", table: "profiles" },
         (payload) => {
           const p = payload.new as any;
-          setProfiles((prev) => ({
-            ...prev,
-            [p.user_id]: { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen },
-          }));
+          const nextProfile = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen };
+          setProfiles((prev) => {
+            const current = prev[p.user_id];
+            if (
+              current &&
+              current.display_name === nextProfile.display_name &&
+              current.avatar_url === nextProfile.avatar_url &&
+              current.last_seen === nextProfile.last_seen
+            ) {
+              return prev;
+            }
+            return { ...prev, [p.user_id]: nextProfile };
+          });
         }
       )
       .subscribe();
@@ -340,7 +350,10 @@ export default function ChatPage() {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(500);
-    if (data) setMessages(data.reverse());
+    if (data) {
+      const nextMessages = data.reverse() as Message[];
+      setMessages((prev) => (areMessageListsEqual(prev, nextMessages) ? prev : nextMessages));
+    }
   }, []);
 
   // Fetch messages and subscribe to realtime
