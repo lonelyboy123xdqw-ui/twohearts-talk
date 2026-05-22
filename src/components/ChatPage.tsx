@@ -215,6 +215,7 @@ export default function ChatPage() {
       });
 
     return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       supabase.removeChannel(channel);
     };
   }, [user]);
@@ -491,6 +492,10 @@ export default function ChatPage() {
       bottomRef.current?.scrollIntoView({ behavior: "auto" });
     }
   }, [messages, partnerTyping]);
+
+  useEffect(() => {
+    setVisibleCount((count) => Math.min(Math.max(count, 120), messages.length || 120));
+  }, [messages.length]);
 
   // Mark unread messages from partner as read — only when the chat is actually visible
   useEffect(() => {
