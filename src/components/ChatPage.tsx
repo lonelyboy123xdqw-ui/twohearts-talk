@@ -360,6 +360,29 @@ export default function ChatPage() {
   useEffect(() => {
     fetchMessages();
 
+    const flushMessageUpdates = () => {
+      const updates = pendingMessageUpdatesRef.current;
+      if (updates.size === 0) return;
+      pendingMessageUpdatesRef.current = new Map();
+      messageUpdateTimerRef.current = null;
+      setMessages((prev) => {
+        let changed = false;
+        const next = prev.map((m) => {
+          const update = updates.get(m.id);
+          if (!update || areMessagesEqual(m, update)) return m;
+          changed = true;
+          return update;
+        });
+        return changed ? next : prev;
+      });
+    };
+
+    const queueMessageUpdate = (message: Message) => {
+      pendingMessageUpdatesRef.current.set(message.id, message);
+      if (messageUpdateTimerRef.current) return;
+      messageUpdateTimerRef.current = setTimeout(flushMessageUpdates, MESSAGE_UPDATE_BATCH_MS);
+    };
+
     const channel = supabase
       .channel("messages-realtime")
       .on(
@@ -380,9 +403,7 @@ export default function ChatPage() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "messages" },
         (payload) => {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === (payload.new as Message).id ? (payload.new as Message) : m))
-          );
+          queueMessageUpdate(payload.new as Message);
         }
       )
       .subscribe((status) => {
@@ -395,6 +416,7 @@ export default function ChatPage() {
       });
 
     return () => {
+      if (messageUpdateTimerRef.current) clearTimeout(messageUpdateTimerRef.current);
       supabase.removeChannel(channel);
     };
   }, []);
