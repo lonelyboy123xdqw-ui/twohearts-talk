@@ -274,16 +274,30 @@ export default function ChatPage() {
   // Request notification permission
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
+      Notification.requestPermission().catch(() => {});
+      // Some browsers (esp. mobile) require a user gesture — retry on first interaction
+      const retry = () => {
+        if (Notification.permission === "default") {
+          Notification.requestPermission().catch(() => {});
+        }
+        window.removeEventListener("pointerdown", retry);
+        window.removeEventListener("keydown", retry);
+      };
+      window.addEventListener("pointerdown", retry, { once: true });
+      window.addEventListener("keydown", retry, { once: true });
+      return () => {
+        window.removeEventListener("pointerdown", retry);
+        window.removeEventListener("keydown", retry);
+      };
     }
   }, []);
 
-  const playPing = useCallback(() => {
+  const playPing = useCallback((ringtone = false) => {
     try {
       const ctx = new AudioContext();
       // Cheerful 3-note chime (E6 → A6 → C#7) with soft bell-like decay
       const master = ctx.createGain();
-      master.gain.value = 0.9; // overall louder
+      master.gain.value = ringtone ? 1.0 : 0.9; // overall louder
       master.connect(ctx.destination);
 
       const notes = [
@@ -292,7 +306,16 @@ export default function ChatPage() {
         { f: 2217.46, t: 0.28 }, // C#7
       ];
 
-      notes.forEach(({ f, t }) => {
+      // When tab is inactive, repeat the chime as a ringtone-style alert
+      const repeats = ringtone ? 3 : 1;
+      const cycleLen = 0.95; // seconds per chime cycle
+      const pattern: Array<{ f: number; t: number }> = [];
+      for (let r = 0; r < repeats; r++) {
+        const offset = r * cycleLen;
+        notes.forEach((n) => pattern.push({ f: n.f, t: n.t + offset }));
+      }
+
+      pattern.forEach(({ f, t }) => {
         const start = ctx.currentTime + t;
         // Fundamental
         const osc = ctx.createOscillator();
@@ -319,11 +342,12 @@ export default function ChatPage() {
         osc.stop(start + 0.6); osc2.stop(start + 0.6);
       });
 
-      setTimeout(() => ctx.close(), 1200);
+      const totalMs = Math.ceil((repeats * cycleLen + 0.6) * 1000);
+      setTimeout(() => ctx.close(), totalMs);
 
       // Vibrate on mobile for extra discoverability
       if ("vibrate" in navigator) {
-        navigator.vibrate?.([60, 40, 80]);
+        navigator.vibrate?.(ringtone ? [120, 80, 120, 80, 200] : [60, 40, 80]);
       }
     } catch {
       return;
@@ -331,11 +355,25 @@ export default function ChatPage() {
   }, []);
 
   const notifyNewMessage = useCallback((msg: Message) => {
-    playPing();
-    if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+    const inactive = document.hidden || !document.hasFocus();
+    playPing(inactive);
+    if ("Notification" in window && Notification.permission === "granted" && inactive) {
       const senderName = profilesRef.current[msg.sender_id]?.display_name || "Your Love";
-      const body = msg.image_url && !msg.content ? "📷 Sent a photo" : msg.content;
-      new Notification(`${senderName} 💕`, { body });
+      const body = msg.image_url && !msg.content ? "📷 Sent a photo" : (msg.content || "New message");
+      try {
+        const n = new Notification(`${senderName} 💕`, {
+          body,
+          tag: "soul-chat-message",
+          icon: "/favicon.ico",
+          ...({ renotify: true, badge: "/favicon.ico" } as object),
+        });
+        n.onclick = () => {
+          window.focus();
+          n.close();
+        };
+      } catch {
+        // ignore
+      }
     }
   }, [playPing]);
 
