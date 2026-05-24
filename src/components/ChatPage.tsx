@@ -364,9 +364,8 @@ export default function ChatPage() {
         const n = new Notification(`${senderName} 💕`, {
           body,
           tag: "soul-chat-message",
-          renotify: true,
           icon: "/favicon.ico",
-          badge: "/favicon.ico",
+          ...({ renotify: true, badge: "/favicon.ico" } as object),
         });
         n.onclick = () => {
           window.focus();
