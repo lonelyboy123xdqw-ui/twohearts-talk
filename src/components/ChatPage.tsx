@@ -1062,7 +1062,7 @@ export default function ChatPage() {
             <p className="text-primary font-medium">
               {isMine(replyTo) ? "You" : profiles[replyTo.sender_id]?.display_name || "Love"}
             </p>
-            <p className="text-muted-foreground truncate">
+            <p className="text-muted-foreground line-clamp-2 break-words whitespace-pre-wrap leading-snug">
               {replyTo.image_url && !replyTo.content ? "📷 Photo" : replyTo.content}
             </p>
           </div>
