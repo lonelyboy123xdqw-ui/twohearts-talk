@@ -1053,6 +1053,7 @@ export default function ChatPage() {
                   </AvatarFallback>
                 </Avatar>
                 {(() => {
+                  if (profiles[msg.sender_id]?.show_presence === false) return null;
                   const s = presenceMap[msg.sender_id];
                   if (!s || s === "offline") return null;
                   return (
@@ -1203,6 +1204,17 @@ export default function ChatPage() {
                     </span>
                   );
                 }
+                if (!partnerPresenceVisible) {
+                  return (
+                    <span className="flex items-center gap-1.5 truncate" title="Your partner has hidden their status">
+                      <EyeOff className="w-3 h-3 text-muted-foreground" />
+                      <span className="truncate">
+                        <span className="font-medium text-foreground/80">{partner.display_name}</span>
+                        <span className="ml-1 text-muted-foreground">· Status hidden</span>
+                      </span>
+                    </span>
+                  );
+                }
                 const lastSeenDate = partner.last_seen ? new Date(partner.last_seen) : null;
                 const statusText =
                   partnerStatus === "online"
@@ -1238,6 +1250,17 @@ export default function ChatPage() {
               <Download className="w-4 h-4" />
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={togglePresencePrivacy}
+            title={myShowPresence ? "Hide my online status & last seen" : "Show my online status & last seen"}
+            aria-label="Toggle presence privacy"
+          >
+            {myShowPresence
+              ? <Eye className="w-4 h-4" />
+              : <EyeOff className="w-4 h-4 text-yellow-500" />}
+          </Button>
           <Button variant="ghost" size="icon" onClick={signOut}>
             <LogOut className="w-4 h-4" />
           </Button>
