@@ -13,6 +13,30 @@ const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 const URL_TEST = /^https?:\/\//;
 const TYPING_THROTTLE_MS = 1800;
 const MESSAGE_UPDATE_BATCH_MS = 80;
+const IDLE_AFTER_MS = 5 * 60 * 1000; // 5 min of no activity → idle (Discord-like)
+
+type PresenceStatus = "online" | "idle" | "offline";
+
+const STATUS_META: Record<PresenceStatus, { label: string; dot: string; ring: string; text: string }> = {
+  online: {
+    label: "Online",
+    dot: "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.85)]",
+    ring: "ring-background",
+    text: "text-green-500",
+  },
+  idle: {
+    label: "Idle",
+    dot: "bg-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.85)]",
+    ring: "ring-background",
+    text: "text-yellow-500",
+  },
+  offline: {
+    label: "Offline",
+    dot: "bg-muted-foreground/50",
+    ring: "ring-background",
+    text: "text-muted-foreground",
+  },
+};
 
 const areStringSetsEqual = (a: Set<string>, b: Set<string>) => {
   if (a.size !== b.size) return false;
@@ -167,7 +191,11 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [presenceMap, setPresenceMap] = useState<Record<string, PresenceStatus>>({});
+  const [myStatus, setMyStatus] = useState<PresenceStatus>("online");
+  const myStatusRef = useRef<PresenceStatus>("online");
+  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
   const [, setNowTick] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -215,28 +243,89 @@ export default function ChatPage() {
     return () => clearInterval(t);
   }, []);
 
-  // Presence tracking — broadcasts which users are currently connected
+  // Presence tracking — Discord-like: each user broadcasts status (online/idle)
   useEffect(() => {
     if (!user) return;
     const channel = supabase.channel("presence-room", {
       config: { presence: { key: user.id } },
     });
+    presenceChannelRef.current = channel;
 
     channel
       .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState();
-        const nextUsers = new Set(Object.keys(state));
-        setOnlineUsers((prev) => (areStringSetsEqual(prev, nextUsers) ? prev : nextUsers));
+        const state = channel.presenceState() as Record<string, Array<{ status?: PresenceStatus }>>;
+        const next: Record<string, PresenceStatus> = {};
+        for (const uid of Object.keys(state)) {
+          // Take the most "online" status across that user's sessions
+          let best: PresenceStatus = "idle";
+          for (const meta of state[uid]) {
+            if (meta?.status === "online") { best = "online"; break; }
+          }
+          next[uid] = best;
+        }
+        setPresenceMap((prev) => {
+          const prevKeys = Object.keys(prev);
+          const nextKeys = Object.keys(next);
+          if (prevKeys.length === nextKeys.length && nextKeys.every((k) => prev[k] === next[k])) return prev;
+          return next;
+        });
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
-          await channel.track({ online_at: new Date().toISOString() });
+          await channel.track({ status: myStatusRef.current, online_at: new Date().toISOString() });
         }
       });
 
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      presenceChannelRef.current = null;
       supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Re-broadcast my status whenever it changes
+  useEffect(() => {
+    myStatusRef.current = myStatus;
+    const ch = presenceChannelRef.current;
+    if (ch) {
+      ch.track({ status: myStatus, online_at: new Date().toISOString() }).catch(() => {});
+    }
+  }, [myStatus]);
+
+  // Activity & idle detection — online while tab is visible AND user interacted recently
+  useEffect(() => {
+    if (!user) return;
+    const bump = () => {
+      lastActivityRef.current = Date.now();
+      if (document.visibilityState === "visible" && myStatusRef.current !== "online") {
+        setMyStatus("online");
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        setMyStatus("idle");
+      } else {
+        lastActivityRef.current = Date.now();
+        setMyStatus("online");
+      }
+    };
+    const events: (keyof WindowEventMap)[] = ["pointerdown", "keydown", "mousemove", "touchstart", "focus", "scroll"];
+    events.forEach((e) => window.addEventListener(e, bump, { passive: true }));
+    document.addEventListener("visibilitychange", onVisibility);
+
+    const interval = setInterval(() => {
+      const inactive = Date.now() - lastActivityRef.current;
+      if (document.visibilityState === "hidden" || inactive >= IDLE_AFTER_MS) {
+        if (myStatusRef.current !== "idle") setMyStatus("idle");
+      } else if (myStatusRef.current !== "online") {
+        setMyStatus("online");
+      }
+    }, 30000);
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, bump));
+      document.removeEventListener("visibilitychange", onVisibility);
+      clearInterval(interval);
     };
   }, [user]);
 
@@ -881,7 +970,9 @@ export default function ChatPage() {
     () => Object.values(profiles).find((p) => p.user_id !== user?.id) || null,
     [profiles, user?.id]
   );
-  const partnerOnline = partner ? onlineUsers.has(partner.user_id) : false;
+  const partnerStatus: PresenceStatus = partner ? (presenceMap[partner.user_id] ?? "offline") : "offline";
+  const partnerOnline = partnerStatus === "online";
+  const partnerMeta = STATUS_META[partnerStatus];
   const visibleMessages = useMemo(
     () => messages.slice(Math.max(0, messages.length - visibleCount)),
     [messages, visibleCount]
@@ -907,9 +998,13 @@ export default function ChatPage() {
                     {(profiles[msg.sender_id]?.display_name || "L").charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {onlineUsers.has(msg.sender_id) && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-background" />
-                )}
+                {(() => {
+                  const s = presenceMap[msg.sender_id];
+                  if (!s || s === "offline") return null;
+                  return (
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-background ${STATUS_META[s].dot}`} />
+                  );
+                })()}
               </div>
             )}
             {mine && (
@@ -1019,7 +1114,7 @@ export default function ChatPage() {
         </div>
       );
     });
-  }, [visibleMessages, messagesById, profiles, onlineUsers, partnerOnline, user?.id]);
+  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id]);
 
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
@@ -1054,15 +1149,24 @@ export default function ChatPage() {
                     </span>
                   );
                 }
+                const lastSeenDate = partner.last_seen ? new Date(partner.last_seen) : null;
+                const statusText =
+                  partnerStatus === "online"
+                    ? "Online"
+                    : partnerStatus === "idle"
+                      ? (lastSeenDate ? `Idle · last active ${formatDistanceToNow(lastSeenDate, { addSuffix: true })}` : "Idle")
+                      : lastSeenDate
+                        ? `Last seen ${formatDistanceToNow(lastSeenDate, { addSuffix: true })}`
+                        : "Offline";
                 return (
-                  <span className="flex items-center gap-1.5 truncate">
-                    <span className={`w-1.5 h-1.5 rounded-full ${partnerOnline ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.8)]" : "bg-muted-foreground/50"}`} />
+                  <span
+                    className="flex items-center gap-1.5 truncate"
+                    title={lastSeenDate ? `Last active ${format(lastSeenDate, "PPp")}` : undefined}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${partnerMeta.dot}`} />
                     <span className="truncate">
-                      {partner.display_name} · {partnerOnline
-                        ? "online"
-                        : partner.last_seen
-                          ? `last seen ${formatDistanceToNow(new Date(partner.last_seen), { addSuffix: true })}`
-                          : "offline"}
+                      <span className="font-medium text-foreground/80">{partner.display_name}</span>
+                      <span className={`ml-1 ${partnerMeta.text}`}>· {statusText}</span>
                     </span>
                   </span>
                 );
