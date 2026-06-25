@@ -244,9 +244,15 @@ export default function ChatPage() {
     return () => clearInterval(t);
   }, []);
 
-  // Presence tracking — Discord-like: each user broadcasts status (online/idle)
+  // Presence tracking — Discord-like: each user broadcasts status (online/idle).
+  // Skipped when the user has hidden their presence.
   useEffect(() => {
     if (!user) return;
+    const myShowPresence = profiles[user.id]?.show_presence ?? true;
+    if (!myShowPresence) {
+      presenceChannelRef.current = null;
+      return;
+    }
     const channel = supabase.channel("presence-room", {
       config: { presence: { key: user.id } },
     });
@@ -282,7 +288,7 @@ export default function ChatPage() {
       presenceChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, profiles]);
 
   // Re-broadcast my status whenever it changes
   useEffect(() => {
