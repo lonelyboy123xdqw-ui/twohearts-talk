@@ -498,19 +498,28 @@ export default function ChatPage() {
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("user_id, display_name, avatar_url, last_seen")
+      .select("user_id, display_name, avatar_url, last_seen, show_presence")
       .then(({ data }) => {
         if (data) {
           const map: Record<string, ProfileData> = {};
-          data.forEach((p: ProfileData) => (map[p.user_id] = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen }));
+          (data as ProfileData[]).forEach((p) => (map[p.user_id] = {
+            user_id: p.user_id,
+            display_name: p.display_name,
+            avatar_url: p.avatar_url,
+            last_seen: p.last_seen,
+            show_presence: p.show_presence ?? true,
+          }));
           setProfiles(map);
         }
       });
   }, []);
 
-  // Update own last_seen periodically while tab is active, and on unload
+  // Update own last_seen periodically while tab is active, and on unload.
+  // Skipped entirely when the user has hidden their presence.
   useEffect(() => {
     if (!user) return;
+    const myShowPresence = profiles[user.id]?.show_presence ?? true;
+    if (!myShowPresence) return;
     const ping = () => {
       supabase.from("profiles").update({ last_seen: new Date().toISOString() } as ProfileUpdate).eq("user_id", user.id).then();
     };
@@ -526,7 +535,7 @@ export default function ChatPage() {
       window.removeEventListener("beforeunload", onHide);
       document.removeEventListener("visibilitychange", onHide);
     };
-  }, [user]);
+  }, [user, profiles]);
 
   // Subscribe to profile updates so we see partner's last_seen change in realtime
   useEffect(() => {
@@ -537,7 +546,13 @@ export default function ChatPage() {
         { event: "UPDATE", schema: "public", table: "profiles" },
         (payload) => {
           const p = payload.new as ProfileData;
-          const nextProfile = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen };
+          const nextProfile: ProfileData = {
+            user_id: p.user_id,
+            display_name: p.display_name,
+            avatar_url: p.avatar_url,
+            last_seen: p.last_seen,
+            show_presence: p.show_presence ?? true,
+          };
           setProfiles((prev) => {
             const current = prev[p.user_id];
             if (p.user_id === user?.id && current?.last_seen !== nextProfile.last_seen) return prev;
@@ -545,7 +560,8 @@ export default function ChatPage() {
               current &&
               current.display_name === nextProfile.display_name &&
               current.avatar_url === nextProfile.avatar_url &&
-              current.last_seen === nextProfile.last_seen
+              current.last_seen === nextProfile.last_seen &&
+              current.show_presence === nextProfile.show_presence
             ) {
               return prev;
             }
