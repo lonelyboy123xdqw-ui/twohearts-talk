@@ -74,6 +74,7 @@ export type Database = {
           display_name: string
           id: string
           last_seen: string | null
+          show_presence: boolean
           user_id: string
         }
         Insert: {
@@ -82,6 +83,7 @@ export type Database = {
           display_name: string
           id?: string
           last_seen?: string | null
+          show_presence?: boolean
           user_id: string
         }
         Update: {
@@ -90,6 +92,7 @@ export type Database = {
           display_name?: string
           id?: string
           last_seen?: string | null
+          show_presence?: boolean
           user_id?: string
         }
         Relationships: []
