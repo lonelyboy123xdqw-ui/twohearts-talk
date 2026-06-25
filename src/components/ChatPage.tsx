@@ -993,9 +993,40 @@ export default function ChatPage() {
     () => Object.values(profiles).find((p) => p.user_id !== user?.id) || null,
     [profiles, user?.id]
   );
-  const partnerStatus: PresenceStatus = partner ? (presenceMap[partner.user_id] ?? "offline") : "offline";
+  const partnerPresenceVisible = partner?.show_presence !== false;
+  const partnerStatus: PresenceStatus = partner && partnerPresenceVisible
+    ? (presenceMap[partner.user_id] ?? "offline")
+    : "offline";
   const partnerOnline = partnerStatus === "online";
   const partnerMeta = STATUS_META[partnerStatus];
+
+  const togglePresencePrivacy = useCallback(async () => {
+    if (!user) return;
+    const next = !myShowPresence;
+    setProfiles((prev) => ({
+      ...prev,
+      [user.id]: { ...(prev[user.id] || { user_id: user.id, display_name: "", avatar_url: null }), show_presence: next },
+    }));
+    const { error } = await supabase
+      .from("profiles")
+      .update({ show_presence: next } as ProfileUpdate)
+      .eq("user_id", user.id);
+    if (error) {
+      toast({ title: "Couldn't update privacy", description: error.message, variant: "destructive" });
+      // revert
+      setProfiles((prev) => ({
+        ...prev,
+        [user.id]: { ...(prev[user.id] || { user_id: user.id, display_name: "", avatar_url: null }), show_presence: !next },
+      }));
+    } else {
+      toast({
+        title: next ? "Status visible" : "Status hidden",
+        description: next
+          ? "Your partner can see when you're online and your last seen."
+          : "Your online status and last seen are hidden from your partner.",
+      });
+    }
+  }, [user, myShowPresence]);
   const visibleMessages = useMemo(
     () => messages.slice(Math.max(0, messages.length - visibleCount)),
     [messages, visibleCount]
