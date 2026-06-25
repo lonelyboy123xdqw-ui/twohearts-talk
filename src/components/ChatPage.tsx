@@ -244,11 +244,12 @@ export default function ChatPage() {
     return () => clearInterval(t);
   }, []);
 
+  const myShowPresence = user ? (profiles[user.id]?.show_presence ?? true) : true;
+
   // Presence tracking — Discord-like: each user broadcasts status (online/idle).
   // Skipped when the user has hidden their presence.
   useEffect(() => {
     if (!user) return;
-    const myShowPresence = profiles[user.id]?.show_presence ?? true;
     if (!myShowPresence) {
       presenceChannelRef.current = null;
       return;
@@ -288,7 +289,7 @@ export default function ChatPage() {
       presenceChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [user, profiles]);
+  }, [user, myShowPresence]);
 
   // Re-broadcast my status whenever it changes
   useEffect(() => {
@@ -524,7 +525,6 @@ export default function ChatPage() {
   // Skipped entirely when the user has hidden their presence.
   useEffect(() => {
     if (!user) return;
-    const myShowPresence = profiles[user.id]?.show_presence ?? true;
     if (!myShowPresence) return;
     const ping = () => {
       supabase.from("profiles").update({ last_seen: new Date().toISOString() } as ProfileUpdate).eq("user_id", user.id).then();
@@ -541,7 +541,7 @@ export default function ChatPage() {
       window.removeEventListener("beforeunload", onHide);
       document.removeEventListener("visibilitychange", onHide);
     };
-  }, [user, profiles]);
+  }, [user, myShowPresence]);
 
   // Subscribe to profile updates so we see partner's last_seen change in realtime
   useEffect(() => {
