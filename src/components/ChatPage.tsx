@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
@@ -159,6 +159,7 @@ interface ProfileData {
   display_name: string;
   avatar_url: string | null;
   last_seen?: string | null;
+  show_presence?: boolean;
 }
 
 interface BeforeInstallPromptEvent extends Event {
@@ -243,9 +244,16 @@ export default function ChatPage() {
     return () => clearInterval(t);
   }, []);
 
-  // Presence tracking — Discord-like: each user broadcasts status (online/idle)
+  const myShowPresence = user ? (profiles[user.id]?.show_presence ?? true) : true;
+
+  // Presence tracking — Discord-like: each user broadcasts status (online/idle).
+  // Skipped when the user has hidden their presence.
   useEffect(() => {
     if (!user) return;
+    if (!myShowPresence) {
+      presenceChannelRef.current = null;
+      return;
+    }
     const channel = supabase.channel("presence-room", {
       config: { presence: { key: user.id } },
     });
@@ -281,7 +289,7 @@ export default function ChatPage() {
       presenceChannelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, myShowPresence]);
 
   // Re-broadcast my status whenever it changes
   useEffect(() => {
@@ -497,19 +505,27 @@ export default function ChatPage() {
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("user_id, display_name, avatar_url, last_seen")
+      .select("user_id, display_name, avatar_url, last_seen, show_presence")
       .then(({ data }) => {
         if (data) {
           const map: Record<string, ProfileData> = {};
-          data.forEach((p: ProfileData) => (map[p.user_id] = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen }));
+          (data as ProfileData[]).forEach((p) => (map[p.user_id] = {
+            user_id: p.user_id,
+            display_name: p.display_name,
+            avatar_url: p.avatar_url,
+            last_seen: p.last_seen,
+            show_presence: p.show_presence ?? true,
+          }));
           setProfiles(map);
         }
       });
   }, []);
 
-  // Update own last_seen periodically while tab is active, and on unload
+  // Update own last_seen periodically while tab is active, and on unload.
+  // Skipped entirely when the user has hidden their presence.
   useEffect(() => {
     if (!user) return;
+    if (!myShowPresence) return;
     const ping = () => {
       supabase.from("profiles").update({ last_seen: new Date().toISOString() } as ProfileUpdate).eq("user_id", user.id).then();
     };
@@ -525,7 +541,7 @@ export default function ChatPage() {
       window.removeEventListener("beforeunload", onHide);
       document.removeEventListener("visibilitychange", onHide);
     };
-  }, [user]);
+  }, [user, myShowPresence]);
 
   // Subscribe to profile updates so we see partner's last_seen change in realtime
   useEffect(() => {
@@ -536,7 +552,13 @@ export default function ChatPage() {
         { event: "UPDATE", schema: "public", table: "profiles" },
         (payload) => {
           const p = payload.new as ProfileData;
-          const nextProfile = { user_id: p.user_id, display_name: p.display_name, avatar_url: p.avatar_url, last_seen: p.last_seen };
+          const nextProfile: ProfileData = {
+            user_id: p.user_id,
+            display_name: p.display_name,
+            avatar_url: p.avatar_url,
+            last_seen: p.last_seen,
+            show_presence: p.show_presence ?? true,
+          };
           setProfiles((prev) => {
             const current = prev[p.user_id];
             if (p.user_id === user?.id && current?.last_seen !== nextProfile.last_seen) return prev;
@@ -544,7 +566,8 @@ export default function ChatPage() {
               current &&
               current.display_name === nextProfile.display_name &&
               current.avatar_url === nextProfile.avatar_url &&
-              current.last_seen === nextProfile.last_seen
+              current.last_seen === nextProfile.last_seen &&
+              current.show_presence === nextProfile.show_presence
             ) {
               return prev;
             }
@@ -970,9 +993,40 @@ export default function ChatPage() {
     () => Object.values(profiles).find((p) => p.user_id !== user?.id) || null,
     [profiles, user?.id]
   );
-  const partnerStatus: PresenceStatus = partner ? (presenceMap[partner.user_id] ?? "offline") : "offline";
+  const partnerPresenceVisible = partner?.show_presence !== false;
+  const partnerStatus: PresenceStatus = partner && partnerPresenceVisible
+    ? (presenceMap[partner.user_id] ?? "offline")
+    : "offline";
   const partnerOnline = partnerStatus === "online";
   const partnerMeta = STATUS_META[partnerStatus];
+
+  const togglePresencePrivacy = useCallback(async () => {
+    if (!user) return;
+    const next = !myShowPresence;
+    setProfiles((prev) => ({
+      ...prev,
+      [user.id]: { ...(prev[user.id] || { user_id: user.id, display_name: "", avatar_url: null }), show_presence: next },
+    }));
+    const { error } = await supabase
+      .from("profiles")
+      .update({ show_presence: next } as ProfileUpdate)
+      .eq("user_id", user.id);
+    if (error) {
+      toast({ title: "Couldn't update privacy", description: error.message, variant: "destructive" });
+      // revert
+      setProfiles((prev) => ({
+        ...prev,
+        [user.id]: { ...(prev[user.id] || { user_id: user.id, display_name: "", avatar_url: null }), show_presence: !next },
+      }));
+    } else {
+      toast({
+        title: next ? "Status visible" : "Status hidden",
+        description: next
+          ? "Your partner can see when you're online and your last seen."
+          : "Your online status and last seen are hidden from your partner.",
+      });
+    }
+  }, [user, myShowPresence]);
   const visibleMessages = useMemo(
     () => messages.slice(Math.max(0, messages.length - visibleCount)),
     [messages, visibleCount]
@@ -999,6 +1053,7 @@ export default function ChatPage() {
                   </AvatarFallback>
                 </Avatar>
                 {(() => {
+                  if (profiles[msg.sender_id]?.show_presence === false) return null;
                   const s = presenceMap[msg.sender_id];
                   if (!s || s === "offline") return null;
                   return (
@@ -1149,6 +1204,17 @@ export default function ChatPage() {
                     </span>
                   );
                 }
+                if (!partnerPresenceVisible) {
+                  return (
+                    <span className="flex items-center gap-1.5 truncate" title="Your partner has hidden their status">
+                      <EyeOff className="w-3 h-3 text-muted-foreground" />
+                      <span className="truncate">
+                        <span className="font-medium text-foreground/80">{partner.display_name}</span>
+                        <span className="ml-1 text-muted-foreground">· Status hidden</span>
+                      </span>
+                    </span>
+                  );
+                }
                 const lastSeenDate = partner.last_seen ? new Date(partner.last_seen) : null;
                 const statusText =
                   partnerStatus === "online"
@@ -1184,6 +1250,17 @@ export default function ChatPage() {
               <Download className="w-4 h-4" />
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={togglePresencePrivacy}
+            title={myShowPresence ? "Hide my online status & last seen" : "Show my online status & last seen"}
+            aria-label="Toggle presence privacy"
+          >
+            {myShowPresence
+              ? <Eye className="w-4 h-4" />
+              : <EyeOff className="w-4 h-4 text-yellow-500" />}
+          </Button>
           <Button variant="ghost" size="icon" onClick={signOut}>
             <LogOut className="w-4 h-4" />
           </Button>
