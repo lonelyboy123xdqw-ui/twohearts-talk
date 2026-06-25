@@ -13,6 +13,30 @@ const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
 const URL_TEST = /^https?:\/\//;
 const TYPING_THROTTLE_MS = 1800;
 const MESSAGE_UPDATE_BATCH_MS = 80;
+const IDLE_AFTER_MS = 5 * 60 * 1000; // 5 min of no activity → idle (Discord-like)
+
+type PresenceStatus = "online" | "idle" | "offline";
+
+const STATUS_META: Record<PresenceStatus, { label: string; dot: string; ring: string; text: string }> = {
+  online: {
+    label: "Online",
+    dot: "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.85)]",
+    ring: "ring-background",
+    text: "text-green-500",
+  },
+  idle: {
+    label: "Idle",
+    dot: "bg-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.85)]",
+    ring: "ring-background",
+    text: "text-yellow-500",
+  },
+  offline: {
+    label: "Offline",
+    dot: "bg-muted-foreground/50",
+    ring: "ring-background",
+    text: "text-muted-foreground",
+  },
+};
 
 const areStringSetsEqual = (a: Set<string>, b: Set<string>) => {
   if (a.size !== b.size) return false;
