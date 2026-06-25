@@ -970,7 +970,9 @@ export default function ChatPage() {
     () => Object.values(profiles).find((p) => p.user_id !== user?.id) || null,
     [profiles, user?.id]
   );
-  const partnerOnline = partner ? onlineUsers.has(partner.user_id) : false;
+  const partnerStatus: PresenceStatus = partner ? (presenceMap[partner.user_id] ?? "offline") : "offline";
+  const partnerOnline = partnerStatus === "online";
+  const partnerMeta = STATUS_META[partnerStatus];
   const visibleMessages = useMemo(
     () => messages.slice(Math.max(0, messages.length - visibleCount)),
     [messages, visibleCount]
@@ -996,9 +998,13 @@ export default function ChatPage() {
                     {(profiles[msg.sender_id]?.display_name || "L").charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {onlineUsers.has(msg.sender_id) && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-background" />
-                )}
+                {(() => {
+                  const s = presenceMap[msg.sender_id];
+                  if (!s || s === "offline") return null;
+                  return (
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-background ${STATUS_META[s].dot}`} />
+                  );
+                })()}
               </div>
             )}
             {mine && (
@@ -1108,7 +1114,7 @@ export default function ChatPage() {
         </div>
       );
     });
-  }, [visibleMessages, messagesById, profiles, onlineUsers, partnerOnline, user?.id]);
+  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id]);
 
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
@@ -1143,15 +1149,24 @@ export default function ChatPage() {
                     </span>
                   );
                 }
+                const lastSeenDate = partner.last_seen ? new Date(partner.last_seen) : null;
+                const statusText =
+                  partnerStatus === "online"
+                    ? "Online"
+                    : partnerStatus === "idle"
+                      ? (lastSeenDate ? `Idle · last active ${formatDistanceToNow(lastSeenDate, { addSuffix: true })}` : "Idle")
+                      : lastSeenDate
+                        ? `Last seen ${formatDistanceToNow(lastSeenDate, { addSuffix: true })}`
+                        : "Offline";
                 return (
-                  <span className="flex items-center gap-1.5 truncate">
-                    <span className={`w-1.5 h-1.5 rounded-full ${partnerOnline ? "bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.8)]" : "bg-muted-foreground/50"}`} />
+                  <span
+                    className="flex items-center gap-1.5 truncate"
+                    title={lastSeenDate ? `Last active ${format(lastSeenDate, "PPp")}` : undefined}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${partnerMeta.dot}`} />
                     <span className="truncate">
-                      {partner.display_name} · {partnerOnline
-                        ? "online"
-                        : partner.last_seen
-                          ? `last seen ${formatDistanceToNow(new Date(partner.last_seen), { addSuffix: true })}`
-                          : "offline"}
+                      <span className="font-medium text-foreground/80">{partner.display_name}</span>
+                      <span className={`ml-1 ${partnerMeta.text}`}>· {statusText}</span>
                     </span>
                   </span>
                 );
