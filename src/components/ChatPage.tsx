@@ -191,7 +191,11 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [presenceMap, setPresenceMap] = useState<Record<string, PresenceStatus>>({});
+  const [myStatus, setMyStatus] = useState<PresenceStatus>("online");
+  const myStatusRef = useRef<PresenceStatus>("online");
+  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
   const [, setNowTick] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -239,28 +243,89 @@ export default function ChatPage() {
     return () => clearInterval(t);
   }, []);
 
-  // Presence tracking — broadcasts which users are currently connected
+  // Presence tracking — Discord-like: each user broadcasts status (online/idle)
   useEffect(() => {
     if (!user) return;
     const channel = supabase.channel("presence-room", {
       config: { presence: { key: user.id } },
     });
+    presenceChannelRef.current = channel;
 
     channel
       .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState();
-        const nextUsers = new Set(Object.keys(state));
-        setOnlineUsers((prev) => (areStringSetsEqual(prev, nextUsers) ? prev : nextUsers));
+        const state = channel.presenceState() as Record<string, Array<{ status?: PresenceStatus }>>;
+        const next: Record<string, PresenceStatus> = {};
+        for (const uid of Object.keys(state)) {
+          // Take the most "online" status across that user's sessions
+          let best: PresenceStatus = "idle";
+          for (const meta of state[uid]) {
+            if (meta?.status === "online") { best = "online"; break; }
+          }
+          next[uid] = best;
+        }
+        setPresenceMap((prev) => {
+          const prevKeys = Object.keys(prev);
+          const nextKeys = Object.keys(next);
+          if (prevKeys.length === nextKeys.length && nextKeys.every((k) => prev[k] === next[k])) return prev;
+          return next;
+        });
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
-          await channel.track({ online_at: new Date().toISOString() });
+          await channel.track({ status: myStatusRef.current, online_at: new Date().toISOString() });
         }
       });
 
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      presenceChannelRef.current = null;
       supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  // Re-broadcast my status whenever it changes
+  useEffect(() => {
+    myStatusRef.current = myStatus;
+    const ch = presenceChannelRef.current;
+    if (ch) {
+      ch.track({ status: myStatus, online_at: new Date().toISOString() }).catch(() => {});
+    }
+  }, [myStatus]);
+
+  // Activity & idle detection — online while tab is visible AND user interacted recently
+  useEffect(() => {
+    if (!user) return;
+    const bump = () => {
+      lastActivityRef.current = Date.now();
+      if (document.visibilityState === "visible" && myStatusRef.current !== "online") {
+        setMyStatus("online");
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        setMyStatus("idle");
+      } else {
+        lastActivityRef.current = Date.now();
+        setMyStatus("online");
+      }
+    };
+    const events: (keyof WindowEventMap)[] = ["pointerdown", "keydown", "mousemove", "touchstart", "focus", "scroll"];
+    events.forEach((e) => window.addEventListener(e, bump, { passive: true }));
+    document.addEventListener("visibilitychange", onVisibility);
+
+    const interval = setInterval(() => {
+      const inactive = Date.now() - lastActivityRef.current;
+      if (document.visibilityState === "hidden" || inactive >= IDLE_AFTER_MS) {
+        if (myStatusRef.current !== "idle") setMyStatus("idle");
+      } else if (myStatusRef.current !== "online") {
+        setMyStatus("online");
+      }
+    }, 30000);
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, bump));
+      document.removeEventListener("visibilitychange", onVisibility);
+      clearInterval(interval);
     };
   }, [user]);
 
