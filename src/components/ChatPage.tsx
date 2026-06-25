@@ -295,59 +295,87 @@ export default function ChatPage() {
   const playPing = useCallback((ringtone = false) => {
     try {
       const ctx = new AudioContext();
-      // Cheerful 3-note chime (E6 → A6 → C#7) with soft bell-like decay
+      // Warm crystal-glass chime: ascending perfect 4ths with shimmer + delay tail
       const master = ctx.createGain();
-      master.gain.value = ringtone ? 1.0 : 0.9; // overall louder
-      master.connect(ctx.destination);
+      master.gain.value = ringtone ? 0.9 : 0.75;
 
+      // Gentle low-pass to remove harshness
+      const lp = ctx.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.value = 6000;
+      lp.Q.value = 0.7;
+
+      // Feedback delay for a "room/reverb" tail
+      const delay = ctx.createDelay(1.0);
+      delay.delayTime.value = 0.18;
+      const fb = ctx.createGain();
+      fb.gain.value = 0.28;
+      const wet = ctx.createGain();
+      wet.gain.value = 0.35;
+      delay.connect(fb).connect(delay);
+      delay.connect(wet).connect(ctx.destination);
+
+      master.connect(lp);
+      lp.connect(ctx.destination);
+      lp.connect(delay);
+
+      // Mellow notes: C5 → G5 → C6 (warmer than the old E6/A6/C#7)
       const notes = [
-        { f: 1318.51, t: 0.0 },  // E6
-        { f: 1760.0,  t: 0.14 }, // A6
-        { f: 2217.46, t: 0.28 }, // C#7
+        { f: 523.25, t: 0.0 },
+        { f: 783.99, t: 0.13 },
+        { f: 1046.5, t: 0.26 },
       ];
 
-      // When tab is inactive, repeat the chime as a ringtone-style alert
       const repeats = ringtone ? 3 : 1;
-      const cycleLen = 0.95; // seconds per chime cycle
-      const pattern: Array<{ f: number; t: number }> = [];
-      for (let r = 0; r < repeats; r++) {
-        const offset = r * cycleLen;
-        notes.forEach((n) => pattern.push({ f: n.f, t: n.t + offset }));
-      }
+      const cycleLen = 1.1;
 
-      pattern.forEach(({ f, t }) => {
-        const start = ctx.currentTime + t;
-        // Fundamental
-        const osc = ctx.createOscillator();
-        osc.type = "sine";
-        osc.frequency.value = f;
-        // Subtle harmonic for a bell shimmer
-        const osc2 = ctx.createOscillator();
-        osc2.type = "triangle";
-        osc2.frequency.value = f * 2;
+      const playNote = (f: number, start: number) => {
+        // Fundamental sine
+        const o1 = ctx.createOscillator();
+        o1.type = "sine";
+        o1.frequency.value = f;
+        // Octave shimmer
+        const o2 = ctx.createOscillator();
+        o2.type = "sine";
+        o2.frequency.value = f * 2.01; // slight detune for life
+        // Sub for warmth
+        const o3 = ctx.createOscillator();
+        o3.type = "triangle";
+        o3.frequency.value = f / 2;
 
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0.0001, start);
-        g.gain.exponentialRampToValueAtTime(0.85, start + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0005, start + 0.55);
+        const g1 = ctx.createGain();
+        g1.gain.setValueAtTime(0.0001, start);
+        g1.gain.exponentialRampToValueAtTime(0.7, start + 0.015);
+        g1.gain.exponentialRampToValueAtTime(0.0005, start + 0.9);
 
         const g2 = ctx.createGain();
         g2.gain.setValueAtTime(0.0001, start);
-        g2.gain.exponentialRampToValueAtTime(0.25, start + 0.02);
-        g2.gain.exponentialRampToValueAtTime(0.0005, start + 0.45);
+        g2.gain.exponentialRampToValueAtTime(0.18, start + 0.02);
+        g2.gain.exponentialRampToValueAtTime(0.0005, start + 0.7);
 
-        osc.connect(g).connect(master);
-        osc2.connect(g2).connect(master);
-        osc.start(start); osc2.start(start);
-        osc.stop(start + 0.6); osc2.stop(start + 0.6);
-      });
+        const g3 = ctx.createGain();
+        g3.gain.setValueAtTime(0.0001, start);
+        g3.gain.exponentialRampToValueAtTime(0.22, start + 0.03);
+        g3.gain.exponentialRampToValueAtTime(0.0005, start + 0.8);
 
-      const totalMs = Math.ceil((repeats * cycleLen + 0.6) * 1000);
+        o1.connect(g1).connect(master);
+        o2.connect(g2).connect(master);
+        o3.connect(g3).connect(master);
+        o1.start(start); o2.start(start); o3.start(start);
+        o1.stop(start + 1.0); o2.stop(start + 0.9); o3.stop(start + 0.95);
+      };
+
+      for (let r = 0; r < repeats; r++) {
+        const offset = r * cycleLen;
+        notes.forEach((n) => playNote(n.f, ctx.currentTime + n.t + offset));
+      }
+
+      const totalMs = Math.ceil((repeats * cycleLen + 1.4) * 1000);
       setTimeout(() => ctx.close(), totalMs);
 
       // Vibrate on mobile for extra discoverability
       if ("vibrate" in navigator) {
-        navigator.vibrate?.(ringtone ? [120, 80, 120, 80, 200] : [60, 40, 80]);
+        navigator.vibrate?.(ringtone ? [80, 60, 80, 60, 160] : [40, 30, 60]);
       }
     } catch {
       return;
