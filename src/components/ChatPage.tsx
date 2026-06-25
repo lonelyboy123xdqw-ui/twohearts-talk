@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
@@ -159,6 +159,7 @@ interface ProfileData {
   display_name: string;
   avatar_url: string | null;
   last_seen?: string | null;
+  show_presence?: boolean;
 }
 
 interface BeforeInstallPromptEvent extends Event {
