@@ -1313,9 +1313,17 @@ export default function ChatPage() {
             {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
             {isOnline ? 'Online' : 'Offline'}
           </span>
-          {!isInstalled && (
-            <Button variant="ghost" size="icon" onClick={handleInstall} title="Install app">
-              <Download className="w-4 h-4" />
+          {!isStandalone && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleInstall}
+              title="Install Us Only on your phone"
+              aria-label="Install app"
+              className="relative"
+            >
+              <Download className="w-4 h-4 text-primary" />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />
             </Button>
           )}
           <Button
