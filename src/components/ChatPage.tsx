@@ -407,6 +407,23 @@ export default function ChatPage() {
     [isInstalled],
   );
 
+  // Auto-suggest install once on iOS Safari (no native prompt available there).
+  useEffect(() => {
+    if (isStandalone) return;
+    if (typeof window === "undefined") return;
+    try {
+      const seen = localStorage.getItem("install_prompt_seen");
+      if (seen) return;
+      if (isIOS) {
+        const t = setTimeout(() => {
+          setInstallOpen(true);
+          localStorage.setItem("install_prompt_seen", "1");
+        }, 4000);
+        return () => clearTimeout(t);
+      }
+    } catch { /* ignore */ }
+  }, [isIOS, isStandalone]);
+
   const toggleNotifications = useCallback(async () => {
     if (!("Notification" in window)) {
       toast({
