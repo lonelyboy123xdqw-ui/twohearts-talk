@@ -1314,6 +1314,36 @@ export default function ChatPage() {
           <Button
             variant="ghost"
             size="icon"
+            onClick={toggleNotifications}
+            title={
+              notifPermission === "granted"
+                ? "Notifications on — tap to test"
+                : notifPermission === "denied"
+                  ? "Notifications blocked — open browser settings"
+                  : isIOS && !isStandalone
+                    ? "Add to Home Screen first to enable notifications"
+                    : "Turn on message notifications"
+            }
+            aria-label="Toggle notifications"
+            className="relative"
+          >
+            {notifPermission === "granted" ? (
+              <>
+                <Bell className="w-4 h-4 text-green-500" />
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-green-500" />
+              </>
+            ) : notifPermission === "denied" ? (
+              <BellOff className="w-4 h-4 text-destructive" />
+            ) : (
+              <>
+                <Bell className="w-4 h-4 text-yellow-500 animate-pulse" />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-yellow-500 ring-2 ring-card" />
+              </>
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={togglePresencePrivacy}
             title={myShowPresence ? "Hide my online status & last seen" : "Show my online status & last seen"}
             aria-label="Toggle presence privacy"
