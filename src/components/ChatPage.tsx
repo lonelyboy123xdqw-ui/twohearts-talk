@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
@@ -189,6 +190,7 @@ export default function ChatPage() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [installOpen, setInstallOpen] = useState(false);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">(
     typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported",
   );
@@ -356,20 +358,25 @@ export default function ChatPage() {
   }, []);
 
   const handleInstall = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
+    // Always open the in-app guide so users see real-time steps for their device.
+    setInstallOpen(true);
+  };
+
+  const triggerNativeInstall = useCallback(async () => {
+    if (!deferredPrompt) return;
+    try {
+      await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === "accepted") {
         setIsInstalled(true);
+        setInstallOpen(false);
+        toast({ title: "Installing Us Only 💕", description: "Look for the app on your home screen." });
       }
       setDeferredPrompt(null);
-    } else {
-      toast({
-        title: "Install Us Only 💕",
-        description: "On iPhone: tap Share → Add to Home Screen. On Android: tap ⋮ menu → Install app.",
-      });
+    } catch {
+      /* ignore */
     }
-  };
+  }, [deferredPrompt]);
 
   // Keep notification permission state fresh (e.g. user changes it in browser settings)
   useEffect(() => {
@@ -399,6 +406,23 @@ export default function ChatPage() {
         (window.navigator as Navigator & { standalone?: boolean }).standalone === true),
     [isInstalled],
   );
+
+  // Auto-suggest install once on iOS Safari (no native prompt available there).
+  useEffect(() => {
+    if (isStandalone) return;
+    if (typeof window === "undefined") return;
+    try {
+      const seen = localStorage.getItem("install_prompt_seen");
+      if (seen) return;
+      if (isIOS) {
+        const t = setTimeout(() => {
+          setInstallOpen(true);
+          localStorage.setItem("install_prompt_seen", "1");
+        }, 4000);
+        return () => clearTimeout(t);
+      }
+    } catch { /* ignore */ }
+  }, [isIOS, isStandalone]);
 
   const toggleNotifications = useCallback(async () => {
     if (!("Notification" in window)) {
@@ -1306,9 +1330,17 @@ export default function ChatPage() {
             {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
             {isOnline ? 'Online' : 'Offline'}
           </span>
-          {!isInstalled && (
-            <Button variant="ghost" size="icon" onClick={handleInstall} title="Install app">
-              <Download className="w-4 h-4" />
+          {!isStandalone && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleInstall}
+              title="Install Us Only on your phone"
+              aria-label="Install app"
+              className="relative"
+            >
+              <Download className="w-4 h-4 text-primary" />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />
             </Button>
           )}
           <Button
@@ -1564,6 +1596,66 @@ export default function ChatPage() {
           )}
         </form>
       )}
+
+      {/* Install app dialog */}
+      <Dialog open={installOpen} onOpenChange={setInstallOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="w-5 h-5 text-primary" />
+              Install Us Only 💕
+            </DialogTitle>
+            <DialogDescription>
+              Add Us Only to your home screen and open it like a real app — full screen, with its own icon and proper notifications.
+            </DialogDescription>
+          </DialogHeader>
+
+          {isInstalled || isStandalone ? (
+            <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-600 dark:text-green-400">
+              ✅ You're already running the installed app. Enjoy!
+            </div>
+          ) : isIOS ? (
+            <div className="space-y-3 text-sm">
+              <p className="font-medium">On iPhone / iPad (Safari):</p>
+              <ol className="list-decimal pl-5 space-y-1.5 text-muted-foreground">
+                <li>Tap the <span className="font-semibold text-foreground">Share</span> button <span aria-hidden>⬆️</span> in Safari's bottom bar.</li>
+                <li>Scroll and tap <span className="font-semibold text-foreground">Add to Home Screen</span>.</li>
+                <li>Tap <span className="font-semibold text-foreground">Add</span> in the top-right corner.</li>
+                <li>Open <span className="font-semibold text-foreground">Us Only</span> from your home screen — that's it!</li>
+              </ol>
+              <p className="text-xs text-muted-foreground pt-1">
+                💡 Notifications on iPhone only work after you install it from the home screen.
+              </p>
+            </div>
+          ) : deferredPrompt ? (
+            <div className="space-y-3 text-sm">
+              <p className="text-muted-foreground">Tap the button below to install Us Only right now.</p>
+              <Button onClick={triggerNativeInstall} className="w-full">
+                <Download className="w-4 h-4 mr-2" /> Install now
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Or from your browser menu (⋮ or ⋯) tap <span className="font-semibold text-foreground">Install app</span> / <span className="font-semibold text-foreground">Add to Home Screen</span>.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 text-sm">
+              <p className="font-medium">On Android / Chrome / Edge:</p>
+              <ol className="list-decimal pl-5 space-y-1.5 text-muted-foreground">
+                <li>Open the browser menu (<span className="font-semibold text-foreground">⋮</span> or <span className="font-semibold text-foreground">⋯</span>) in the top-right.</li>
+                <li>Tap <span className="font-semibold text-foreground">Install app</span> or <span className="font-semibold text-foreground">Add to Home Screen</span>.</li>
+                <li>Confirm <span className="font-semibold text-foreground">Install</span>.</li>
+              </ol>
+              <p className="text-xs text-muted-foreground pt-1">
+                On desktop Chrome / Edge, look for the install icon <span aria-hidden>⊕</span> at the right edge of the address bar.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setInstallOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Lightbox */}
       {lightboxUrl && (

@@ -2,20 +2,26 @@
   "name": "Us Only",
   "short_name": "Us Only",
   "description": "Private chat for two 💕",
+  "id": "/",
+  "scope": "/",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
+  "categories": ["social", "lifestyle"],
   "background_color": "#1a1613",
   "theme_color": "#c9375d",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
