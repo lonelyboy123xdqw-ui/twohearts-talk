@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 
@@ -189,6 +189,9 @@ export default function ChatPage() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">(
+    typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported",
+  );
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -368,26 +371,84 @@ export default function ChatPage() {
     }
   };
 
-  // Request notification permission
+  // Keep notification permission state fresh (e.g. user changes it in browser settings)
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {});
-      // Some browsers (esp. mobile) require a user gesture — retry on first interaction
-      const retry = () => {
-        if (Notification.permission === "default") {
-          Notification.requestPermission().catch(() => {});
-        }
-        window.removeEventListener("pointerdown", retry);
-        window.removeEventListener("keydown", retry);
-      };
-      window.addEventListener("pointerdown", retry, { once: true });
-      window.addEventListener("keydown", retry, { once: true });
-      return () => {
-        window.removeEventListener("pointerdown", retry);
-        window.removeEventListener("keydown", retry);
-      };
-    }
+    if (!("Notification" in window)) return;
+    const sync = () => setNotifPermission(Notification.permission);
+    sync();
+    const onVis = () => sync();
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", onVis);
+    };
   }, []);
+
+  const isIOS = useMemo(
+    () =>
+      typeof navigator !== "undefined" &&
+      (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && (navigator as Navigator & { maxTouchPoints?: number }).maxTouchPoints! > 1)),
+    [],
+  );
+  const isStandalone = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      (window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as Navigator & { standalone?: boolean }).standalone === true),
+    [isInstalled],
+  );
+
+  const toggleNotifications = useCallback(async () => {
+    if (!("Notification" in window)) {
+      toast({
+        title: "Notifications not supported",
+        description: isIOS
+          ? "On iPhone, first tap Share → Add to Home Screen, then open the app from your home screen and try again."
+          : "Your browser doesn't support notifications.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isIOS && !isStandalone) {
+      toast({
+        title: "Install Us Only first 💕",
+        description: "iPhone needs the app on your Home Screen for notifications. Tap Share → Add to Home Screen, then open it from there.",
+      });
+      return;
+    }
+    if (Notification.permission === "granted") {
+      // Show a quick test so she knows it's working
+      try {
+        new Notification("Notifications are on 💕", { body: "You'll get pinged when a new message arrives.", icon: "/icon-192.png" });
+      } catch { /* ignore */ }
+      toast({ title: "Already enabled", description: "You're all set to receive message notifications." });
+      return;
+    }
+    if (Notification.permission === "denied") {
+      toast({
+        title: "Notifications blocked",
+        description: "Open browser settings for this site and allow Notifications, then come back.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const res = await Notification.requestPermission();
+      setNotifPermission(res);
+      if (res === "granted") {
+        try {
+          new Notification("Notifications enabled 💕", { body: "You'll get pinged for new messages.", icon: "/icon-192.png" });
+        } catch { /* ignore */ }
+        toast({ title: "Notifications on ✨", description: "You'll be notified when a new message arrives." });
+      } else {
+        toast({ title: "Permission not granted", description: "You can enable it anytime from this button.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Could not enable", description: "Try again or check your browser settings.", variant: "destructive" });
+    }
+  }, [isIOS, isStandalone, toast]);
 
   const playPing = useCallback((ringtone = false) => {
     try {
@@ -1250,6 +1311,36 @@ export default function ChatPage() {
               <Download className="w-4 h-4" />
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleNotifications}
+            title={
+              notifPermission === "granted"
+                ? "Notifications on — tap to test"
+                : notifPermission === "denied"
+                  ? "Notifications blocked — open browser settings"
+                  : isIOS && !isStandalone
+                    ? "Add to Home Screen first to enable notifications"
+                    : "Turn on message notifications"
+            }
+            aria-label="Toggle notifications"
+            className="relative"
+          >
+            {notifPermission === "granted" ? (
+              <>
+                <Bell className="w-4 h-4 text-green-500" />
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-green-500" />
+              </>
+            ) : notifPermission === "denied" ? (
+              <BellOff className="w-4 h-4 text-destructive" />
+            ) : (
+              <>
+                <Bell className="w-4 h-4 text-yellow-500 animate-pulse" />
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-yellow-500 ring-2 ring-card" />
+              </>
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="icon"
