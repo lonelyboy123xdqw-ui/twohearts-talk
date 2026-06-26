@@ -358,20 +358,25 @@ export default function ChatPage() {
   }, []);
 
   const handleInstall = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
+    // Always open the in-app guide so users see real-time steps for their device.
+    setInstallOpen(true);
+  };
+
+  const triggerNativeInstall = useCallback(async () => {
+    if (!deferredPrompt) return;
+    try {
+      await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === "accepted") {
         setIsInstalled(true);
+        setInstallOpen(false);
+        toast({ title: "Installing Us Only 💕", description: "Look for the app on your home screen." });
       }
       setDeferredPrompt(null);
-    } else {
-      toast({
-        title: "Install Us Only 💕",
-        description: "On iPhone: tap Share → Add to Home Screen. On Android: tap ⋮ menu → Install app.",
-      });
+    } catch {
+      /* ignore */
     }
-  };
+  }, [deferredPrompt]);
 
   // Keep notification permission state fresh (e.g. user changes it in browser settings)
   useEffect(() => {
