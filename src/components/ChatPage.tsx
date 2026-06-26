@@ -371,26 +371,84 @@ export default function ChatPage() {
     }
   };
 
-  // Request notification permission
+  // Keep notification permission state fresh (e.g. user changes it in browser settings)
   useEffect(() => {
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {});
-      // Some browsers (esp. mobile) require a user gesture — retry on first interaction
-      const retry = () => {
-        if (Notification.permission === "default") {
-          Notification.requestPermission().catch(() => {});
-        }
-        window.removeEventListener("pointerdown", retry);
-        window.removeEventListener("keydown", retry);
-      };
-      window.addEventListener("pointerdown", retry, { once: true });
-      window.addEventListener("keydown", retry, { once: true });
-      return () => {
-        window.removeEventListener("pointerdown", retry);
-        window.removeEventListener("keydown", retry);
-      };
-    }
+    if (!("Notification" in window)) return;
+    const sync = () => setNotifPermission(Notification.permission);
+    sync();
+    const onVis = () => sync();
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", onVis);
+    };
   }, []);
+
+  const isIOS = useMemo(
+    () =>
+      typeof navigator !== "undefined" &&
+      (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && (navigator as Navigator & { maxTouchPoints?: number }).maxTouchPoints! > 1)),
+    [],
+  );
+  const isStandalone = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      (window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as Navigator & { standalone?: boolean }).standalone === true),
+    [isInstalled],
+  );
+
+  const toggleNotifications = useCallback(async () => {
+    if (!("Notification" in window)) {
+      toast({
+        title: "Notifications not supported",
+        description: isIOS
+          ? "On iPhone, first tap Share → Add to Home Screen, then open the app from your home screen and try again."
+          : "Your browser doesn't support notifications.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isIOS && !isStandalone) {
+      toast({
+        title: "Install Us Only first 💕",
+        description: "iPhone needs the app on your Home Screen for notifications. Tap Share → Add to Home Screen, then open it from there.",
+      });
+      return;
+    }
+    if (Notification.permission === "granted") {
+      // Show a quick test so she knows it's working
+      try {
+        new Notification("Notifications are on 💕", { body: "You'll get pinged when a new message arrives.", icon: "/icon-192.png" });
+      } catch { /* ignore */ }
+      toast({ title: "Already enabled", description: "You're all set to receive message notifications." });
+      return;
+    }
+    if (Notification.permission === "denied") {
+      toast({
+        title: "Notifications blocked",
+        description: "Open browser settings for this site and allow Notifications, then come back.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const res = await Notification.requestPermission();
+      setNotifPermission(res);
+      if (res === "granted") {
+        try {
+          new Notification("Notifications enabled 💕", { body: "You'll get pinged for new messages.", icon: "/icon-192.png" });
+        } catch { /* ignore */ }
+        toast({ title: "Notifications on ✨", description: "You'll be notified when a new message arrives." });
+      } else {
+        toast({ title: "Permission not granted", description: "You can enable it anytime from this button.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Could not enable", description: "Try again or check your browser settings.", variant: "destructive" });
+    }
+  }, [isIOS, isStandalone, toast]);
 
   const playPing = useCallback((ringtone = false) => {
     try {
