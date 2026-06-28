@@ -1122,8 +1122,7 @@ export default function ChatPage() {
     setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, pinned: next } : m)));
     const { error } = await supabase
       .from("messages")
-      // @ts-expect-error pinned column added via migration, types regen pending
-      .update({ pinned: next })
+      .update({ pinned: next } as never)
       .eq("id", msg.id);
     if (error) {
       setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, pinned: !next } : m)));
