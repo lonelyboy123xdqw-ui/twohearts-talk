@@ -57,7 +57,8 @@ const areMessagesEqual = (a: Message, b: Message) =>
   a.file_url === b.file_url &&
   a.file_name === b.file_name &&
   a.file_type === b.file_type &&
-  a.video_url === b.video_url;
+  a.video_url === b.video_url &&
+  (a.pinned ?? false) === (b.pinned ?? false);
 
 const areMessageListsEqual = (a: Message[], b: Message[]) => {
   if (a.length !== b.length) return false;
