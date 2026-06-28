@@ -1321,7 +1321,58 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="relative flex flex-col h-[100dvh] w-full max-w-3xl mx-auto">
+    <div className={`relative flex h-[100dvh] w-full ${mediaPanelOpen ? "flex-col md:flex-row" : "flex-col"}`}>
+      {/* Media side panel — left on PC, bottom on mobile */}
+      {mediaPanelOpen && (
+        <aside className="order-2 md:order-1 h-1/2 md:h-full md:w-[340px] lg:w-[380px] shrink-0 border-t md:border-t-0 md:border-r border-border/60 bg-card/40 backdrop-blur-xl flex flex-col min-h-0">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/50 bg-card/60">
+            <div className="flex items-center gap-2">
+              <Images className="w-4 h-4 text-accent" />
+              <span className="text-sm font-semibold">Shared media</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{mediaMessages.length}</span>
+            </div>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMediaPanelOpen(false)} title="Close media panel">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
+            {mediaMessages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-xs gap-2">
+                <Images className="w-8 h-8 opacity-40" />
+                <p>No photos or videos yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-1.5">
+                {mediaMessages.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      if (m.image_url) setLightboxUrl(m.image_url);
+                      else scrollToMessage(m.id);
+                    }}
+                    className="relative aspect-square rounded-lg overflow-hidden bg-muted group/media"
+                    title={format(new Date(m.created_at), "PPp")}
+                  >
+                    {m.image_url ? (
+                      <img src={m.image_url} alt="" loading="lazy" className="w-full h-full object-cover group-hover/media:scale-105 transition-transform" />
+                    ) : (
+                      <>
+                        <video src={m.video_url!} className="w-full h-full object-cover" preload="metadata" />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Play className="w-5 h-5 text-white" fill="currentColor" />
+                        </span>
+                      </>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
+      )}
+
+      {/* Chat column */}
+      <div className="order-1 md:order-2 flex-1 min-w-0 min-h-0 flex flex-col h-1/2 md:h-full data-[full=true]:h-full" data-full={!mediaPanelOpen}>
       {/* Header */}
       <header className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -1427,6 +1478,16 @@ export default function ChatPage() {
                 <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-yellow-500 ring-2 ring-card" />
               </>
             )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMediaPanelOpen((v) => !v)}
+            title={mediaPanelOpen ? "Hide media panel" : "Show shared media"}
+            aria-label="Toggle media panel"
+            className="relative"
+          >
+            {mediaPanelOpen ? <PanelLeftClose className="w-4 h-4 text-accent" /> : <PanelLeftOpen className="w-4 h-4" />}
           </Button>
           <Button
             variant="ghost"
