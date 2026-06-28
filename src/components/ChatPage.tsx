@@ -222,6 +222,7 @@ export default function ChatPage() {
   const pendingMessageUpdatesRef = useRef<Map<string, Message>>(new Map());
   const messageUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [visibleCount, setVisibleCount] = useState(120);
+  const [mediaPanelOpen, setMediaPanelOpen] = useState(false);
   const profilesRef = useRef<Record<string, ProfileData>>({});
   const userIdRef = useRef<string | undefined>(user?.id);
 
