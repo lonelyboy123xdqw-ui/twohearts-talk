@@ -1712,6 +1712,7 @@ export default function ChatPage() {
           )}
         </form>
       )}
+      </div>
 
       {/* Install app dialog */}
       <Dialog open={installOpen} onOpenChange={setInstallOpen}>
