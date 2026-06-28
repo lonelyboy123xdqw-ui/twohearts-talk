@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Pin, PinOff, Images, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
@@ -57,7 +57,8 @@ const areMessagesEqual = (a: Message, b: Message) =>
   a.file_url === b.file_url &&
   a.file_name === b.file_name &&
   a.file_type === b.file_type &&
-  a.video_url === b.video_url;
+  a.video_url === b.video_url &&
+  (a.pinned ?? false) === (b.pinned ?? false);
 
 const areMessageListsEqual = (a: Message[], b: Message[]) => {
   if (a.length !== b.length) return false;
@@ -153,6 +154,7 @@ interface Message {
   file_name?: string | null;
   file_type?: string | null;
   video_url?: string | null;
+  pinned?: boolean | null;
 }
 
 interface ProfileData {
@@ -220,6 +222,7 @@ export default function ChatPage() {
   const pendingMessageUpdatesRef = useRef<Map<string, Message>>(new Map());
   const messageUpdateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [visibleCount, setVisibleCount] = useState(120);
+  const [mediaPanelOpen, setMediaPanelOpen] = useState(false);
   const profilesRef = useRef<Record<string, ProfileData>>({});
   const userIdRef = useRef<string | undefined>(user?.id);
 
@@ -1112,6 +1115,33 @@ export default function ChatPage() {
       });
     }
   }, [user, myShowPresence]);
+
+  const togglePin = useCallback(async (msg: Message) => {
+    const next = !msg.pinned;
+    // optimistic
+    setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, pinned: next } : m)));
+    const { error } = await supabase
+      .from("messages")
+      .update({ pinned: next } as never)
+      .eq("id", msg.id);
+    if (error) {
+      setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, pinned: !next } : m)));
+      toast({ title: "Couldn't update pin", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: next ? "Message pinned 📌" : "Message unpinned" });
+    }
+  }, []);
+
+  const pinnedMessages = useMemo(
+    () => messages.filter((m) => m.pinned),
+    [messages],
+  );
+
+  const mediaMessages = useMemo(
+    () => messages.filter((m) => m.image_url || m.video_url).slice().reverse(),
+    [messages],
+  );
+
   const visibleMessages = useMemo(
     () => messages.slice(Math.max(0, messages.length - visibleCount)),
     [messages, visibleCount]
@@ -1148,20 +1178,35 @@ export default function ChatPage() {
               </div>
             )}
             {mine && (
-              <button
-                onClick={() => handleReply(msg)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-muted"
-              >
-                <Reply className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
+              <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => handleReply(msg)}
+                  className="p-1 rounded-full hover:bg-muted"
+                  title="Reply"
+                >
+                  <Reply className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={() => togglePin(msg)}
+                  className="p-1 rounded-full hover:bg-muted"
+                  title={msg.pinned ? "Unpin" : "Pin"}
+                >
+                  {msg.pinned ? <PinOff className="w-3.5 h-3.5 text-accent" /> : <Pin className="w-3.5 h-3.5 text-muted-foreground" />}
+                </button>
+              </div>
             )}
             <div
-              className={`max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm ${
+              className={`relative max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm ${
                 mine
-                  ? "bg-gradient-to-br from-primary/90 to-accent/80 text-primary-foreground rounded-br-sm shadow-primary/20"
+                  ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground rounded-br-sm shadow-primary/30"
                   : "bg-chat-theirs/80 rounded-bl-sm border border-border/40"
-              }`}
+              } ${msg.pinned ? "ring-1 ring-accent/60" : ""}`}
             >
+              {msg.pinned && (
+                <span className="absolute -top-2 -left-2 bg-accent text-accent-foreground rounded-full p-0.5 shadow-md">
+                  <Pin className="w-2.5 h-2.5" fill="currentColor" />
+                </span>
+              )}
               {!mine && (
                 <p className="text-xs text-primary font-medium mb-0.5">
                   {profiles[msg.sender_id]?.display_name || "Love"}
@@ -1232,12 +1277,22 @@ export default function ChatPage() {
               </div>
             </div>
             {!mine && (
-              <button
-                onClick={() => handleReply(msg)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-muted"
-              >
-                <Reply className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
+              <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => handleReply(msg)}
+                  className="p-1 rounded-full hover:bg-muted"
+                  title="Reply"
+                >
+                  <Reply className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={() => togglePin(msg)}
+                  className="p-1 rounded-full hover:bg-muted"
+                  title={msg.pinned ? "Unpin" : "Pin"}
+                >
+                  {msg.pinned ? <PinOff className="w-3.5 h-3.5 text-accent" /> : <Pin className="w-3.5 h-3.5 text-muted-foreground" />}
+                </button>
+              </div>
             )}
             {mine && (
               <div className="relative shrink-0">
@@ -1254,7 +1309,7 @@ export default function ChatPage() {
         </div>
       );
     });
-  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id]);
+  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id, togglePin]);
 
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
@@ -1266,7 +1321,58 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="relative flex flex-col h-[100dvh] w-full max-w-3xl mx-auto">
+    <div className={`relative flex h-[100dvh] w-full ${mediaPanelOpen ? "flex-col md:flex-row" : "flex-col"}`}>
+      {/* Media side panel — left on PC, bottom on mobile */}
+      {mediaPanelOpen && (
+        <aside className="order-2 md:order-1 h-1/2 md:h-full md:w-[340px] lg:w-[380px] shrink-0 border-t md:border-t-0 md:border-r border-border/60 bg-card/40 backdrop-blur-xl flex flex-col min-h-0">
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/50 bg-card/60">
+            <div className="flex items-center gap-2">
+              <Images className="w-4 h-4 text-accent" />
+              <span className="text-sm font-semibold">Shared media</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{mediaMessages.length}</span>
+            </div>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMediaPanelOpen(false)} title="Close media panel">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
+            {mediaMessages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-xs gap-2">
+                <Images className="w-8 h-8 opacity-40" />
+                <p>No photos or videos yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-1.5">
+                {mediaMessages.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      if (m.image_url) setLightboxUrl(m.image_url);
+                      else scrollToMessage(m.id);
+                    }}
+                    className="relative aspect-square rounded-lg overflow-hidden bg-muted group/media"
+                    title={format(new Date(m.created_at), "PPp")}
+                  >
+                    {m.image_url ? (
+                      <img src={m.image_url} alt="" loading="lazy" className="w-full h-full object-cover group-hover/media:scale-105 transition-transform" />
+                    ) : (
+                      <>
+                        <video src={m.video_url!} className="w-full h-full object-cover" preload="metadata" />
+                        <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Play className="w-5 h-5 text-white" fill="currentColor" />
+                        </span>
+                      </>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
+      )}
+
+      {/* Chat column */}
+      <div className={`order-1 md:order-2 flex-1 min-w-0 min-h-0 flex flex-col md:h-full ${mediaPanelOpen ? "h-1/2" : "h-full"}`}>
       {/* Header */}
       <header className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -1376,6 +1482,16 @@ export default function ChatPage() {
           <Button
             variant="ghost"
             size="icon"
+            onClick={() => setMediaPanelOpen((v) => !v)}
+            title={mediaPanelOpen ? "Hide media panel" : "Show shared media"}
+            aria-label="Toggle media panel"
+            className="relative"
+          >
+            {mediaPanelOpen ? <PanelLeftClose className="w-4 h-4 text-accent" /> : <PanelLeftOpen className="w-4 h-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={togglePresencePrivacy}
             title={myShowPresence ? "Hide my online status & last seen" : "Show my online status & last seen"}
             aria-label="Toggle presence privacy"
@@ -1391,6 +1507,28 @@ export default function ChatPage() {
       </header>
 
       {/* Messages */}
+      {pinnedMessages.length > 0 && (
+        <div className="border-b border-border/50 bg-accent/5 backdrop-blur-sm px-2 sm:px-3 py-1.5 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+          <Pin className="w-3.5 h-3.5 text-accent shrink-0" fill="currentColor" />
+          <div className="flex items-center gap-2">
+            {pinnedMessages.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => scrollToMessage(p.id)}
+                className="shrink-0 max-w-[180px] sm:max-w-[260px] text-left px-2 py-1 rounded-md bg-card/70 hover:bg-card border border-accent/30 text-[11px] leading-snug"
+                title="Jump to pinned message"
+              >
+                <span className="text-accent font-medium block truncate">
+                  {profiles[p.sender_id]?.display_name || "Love"}
+                </span>
+                <span className="text-muted-foreground line-clamp-1 break-words">
+                  {p.image_url && !p.content ? "📷 Photo" : p.video_url && !p.content ? "🎬 Video" : p.file_url && !p.content ? `📎 ${p.file_name}` : p.content || "Pinned"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide overscroll-contain">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
@@ -1596,6 +1734,7 @@ export default function ChatPage() {
           )}
         </form>
       )}
+      </div>
 
       {/* Install app dialog */}
       <Dialog open={installOpen} onOpenChange={setInstallOpen}>

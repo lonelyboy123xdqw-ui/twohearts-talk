@@ -24,6 +24,7 @@ export type Database = {
           file_url: string | null
           id: string
           image_url: string | null
+          pinned: boolean
           read_at: string | null
           reply_to_id: string | null
           sender_id: string
@@ -38,6 +39,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           image_url?: string | null
+          pinned?: boolean
           read_at?: string | null
           reply_to_id?: string | null
           sender_id: string
@@ -52,6 +54,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           image_url?: string | null
+          pinned?: boolean
           read_at?: string | null
           reply_to_id?: string | null
           sender_id?: string

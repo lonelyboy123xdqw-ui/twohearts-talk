@@ -1,0 +1,1 @@
+ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS pinned boolean NOT NULL DEFAULT false; CREATE INDEX IF NOT EXISTS messages_pinned_idx ON public.messages(pinned) WHERE pinned = true;
