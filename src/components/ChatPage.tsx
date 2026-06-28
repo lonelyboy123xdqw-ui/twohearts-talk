@@ -1178,20 +1178,35 @@ export default function ChatPage() {
               </div>
             )}
             {mine && (
-              <button
-                onClick={() => handleReply(msg)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-muted"
-              >
-                <Reply className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
+              <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => handleReply(msg)}
+                  className="p-1 rounded-full hover:bg-muted"
+                  title="Reply"
+                >
+                  <Reply className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={() => togglePin(msg)}
+                  className="p-1 rounded-full hover:bg-muted"
+                  title={msg.pinned ? "Unpin" : "Pin"}
+                >
+                  {msg.pinned ? <PinOff className="w-3.5 h-3.5 text-accent" /> : <Pin className="w-3.5 h-3.5 text-muted-foreground" />}
+                </button>
+              </div>
             )}
             <div
-              className={`max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm ${
+              className={`relative max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm ${
                 mine
-                  ? "bg-gradient-to-br from-primary/90 to-accent/80 text-primary-foreground rounded-br-sm shadow-primary/20"
+                  ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground rounded-br-sm shadow-primary/30"
                   : "bg-chat-theirs/80 rounded-bl-sm border border-border/40"
-              }`}
+              } ${msg.pinned ? "ring-1 ring-accent/60" : ""}`}
             >
+              {msg.pinned && (
+                <span className="absolute -top-2 -left-2 bg-accent text-accent-foreground rounded-full p-0.5 shadow-md">
+                  <Pin className="w-2.5 h-2.5" fill="currentColor" />
+                </span>
+              )}
               {!mine && (
                 <p className="text-xs text-primary font-medium mb-0.5">
                   {profiles[msg.sender_id]?.display_name || "Love"}
@@ -1262,12 +1277,22 @@ export default function ChatPage() {
               </div>
             </div>
             {!mine && (
-              <button
-                onClick={() => handleReply(msg)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-muted"
-              >
-                <Reply className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
+              <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => handleReply(msg)}
+                  className="p-1 rounded-full hover:bg-muted"
+                  title="Reply"
+                >
+                  <Reply className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={() => togglePin(msg)}
+                  className="p-1 rounded-full hover:bg-muted"
+                  title={msg.pinned ? "Unpin" : "Pin"}
+                >
+                  {msg.pinned ? <PinOff className="w-3.5 h-3.5 text-accent" /> : <Pin className="w-3.5 h-3.5 text-muted-foreground" />}
+                </button>
+              </div>
             )}
             {mine && (
               <div className="relative shrink-0">
