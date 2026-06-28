@@ -1372,7 +1372,7 @@ export default function ChatPage() {
       )}
 
       {/* Chat column */}
-      <div className="order-1 md:order-2 flex-1 min-w-0 min-h-0 flex flex-col h-1/2 md:h-full data-[full=true]:h-full" data-full={!mediaPanelOpen}>
+      <div className={`order-1 md:order-2 flex-1 min-w-0 min-h-0 flex flex-col md:h-full ${mediaPanelOpen ? "h-1/2" : "h-full"}`}>
       {/* Header */}
       <header className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
