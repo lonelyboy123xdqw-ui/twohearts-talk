@@ -1507,6 +1507,28 @@ export default function ChatPage() {
       </header>
 
       {/* Messages */}
+      {pinnedMessages.length > 0 && (
+        <div className="border-b border-border/50 bg-accent/5 backdrop-blur-sm px-2 sm:px-3 py-1.5 flex items-center gap-2 overflow-x-auto scrollbar-hide">
+          <Pin className="w-3.5 h-3.5 text-accent shrink-0" fill="currentColor" />
+          <div className="flex items-center gap-2">
+            {pinnedMessages.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => scrollToMessage(p.id)}
+                className="shrink-0 max-w-[180px] sm:max-w-[260px] text-left px-2 py-1 rounded-md bg-card/70 hover:bg-card border border-accent/30 text-[11px] leading-snug"
+                title="Jump to pinned message"
+              >
+                <span className="text-accent font-medium block truncate">
+                  {profiles[p.sender_id]?.display_name || "Love"}
+                </span>
+                <span className="text-muted-foreground line-clamp-1 break-words">
+                  {p.image_url && !p.content ? "📷 Photo" : p.video_url && !p.content ? "🎬 Video" : p.file_url && !p.content ? `📎 ${p.file_name}` : p.content || "Pinned"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide overscroll-contain">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
