@@ -1309,7 +1309,7 @@ export default function ChatPage() {
         </div>
       );
     });
-  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id]);
+  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id, togglePin]);
 
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
