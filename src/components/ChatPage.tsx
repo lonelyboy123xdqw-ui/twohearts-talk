@@ -1115,6 +1115,34 @@ export default function ChatPage() {
       });
     }
   }, [user, myShowPresence]);
+
+  const togglePin = useCallback(async (msg: Message) => {
+    const next = !msg.pinned;
+    // optimistic
+    setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, pinned: next } : m)));
+    const { error } = await supabase
+      .from("messages")
+      // @ts-expect-error pinned column added via migration, types regen pending
+      .update({ pinned: next })
+      .eq("id", msg.id);
+    if (error) {
+      setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, pinned: !next } : m)));
+      toast({ title: "Couldn't update pin", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: next ? "Message pinned 📌" : "Message unpinned" });
+    }
+  }, []);
+
+  const pinnedMessages = useMemo(
+    () => messages.filter((m) => m.pinned),
+    [messages],
+  );
+
+  const mediaMessages = useMemo(
+    () => messages.filter((m) => m.image_url || m.video_url).slice().reverse(),
+    [messages],
+  );
+
   const visibleMessages = useMemo(
     () => messages.slice(Math.max(0, messages.length - visibleCount)),
     [messages, visibleCount]
