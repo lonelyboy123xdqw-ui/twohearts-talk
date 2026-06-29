@@ -1374,7 +1374,7 @@ export default function ChatPage() {
       {/* Chat column */}
       <div className={`order-1 md:order-2 flex-1 min-w-0 min-h-0 flex flex-col md:h-full ${mediaPanelOpen ? "h-1/2" : "h-full"}`}>
       {/* Header */}
-      <header className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
+      <header className="header-enter flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <div className="relative shrink-0">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
@@ -1529,7 +1529,7 @@ export default function ChatPage() {
           </div>
         </div>
       )}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide overscroll-contain">
+      <div ref={messagesContainerRef} className="chat-scroll flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide overscroll-contain">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
             <Heart className="w-10 h-10 mb-2 text-primary/30" />
@@ -1717,7 +1717,7 @@ export default function ChatPage() {
               type="submit"
               size="icon"
               disabled={sending}
-              className="shrink-0"
+              className="send-btn shrink-0"
             >
               <Send className="w-4 h-4" />
             </Button>
