@@ -262,8 +262,6 @@ span[class*="rounded-full"][class*="overflow-hidden"] {
    ============================================================ */
 .chat-scroll {
   contain: layout style;
-  content-visibility: auto;
-  contain-intrinsic-size: 800px;
 }
 
 /* Media gallery cards: scroll-reveal hover */
