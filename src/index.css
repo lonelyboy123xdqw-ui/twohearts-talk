@@ -52,8 +52,16 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
   * {
     @apply border-border;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   body {
@@ -75,6 +83,225 @@
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  .gpu {
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: transform, opacity;
+  }
+
+  .text-gradient-flow {
+    background: linear-gradient(90deg, hsl(345 82% 70%), hsl(35 90% 65%), hsl(345 82% 70%));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: textGradientFlow 6s linear infinite;
+    will-change: background-position;
+  }
+}
+
+/* ============================================================
+   Global keyframes — transform/opacity only (compositor-friendly)
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes scaleInBounce {
+  0%   { opacity: 0; transform: scale(0.7); }
+  70%  { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes skeletonWave {
+  0%   { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 14px hsl(var(--primary) / 0.30); }
+  50%      { box-shadow: 0 0 28px hsl(var(--primary) / 0.55); }
+}
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40%           { transform: translateY(-6px); opacity: 1; }
+}
+@keyframes textGradientFlow {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes ripple {
+  0%   { transform: scale(0); opacity: 0.45; }
+  100% { transform: scale(4); opacity: 0; }
+}
+@keyframes messageSlideInLeft {
+  from { opacity: 0; transform: translate3d(-14px, 6px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes messageSlideInRight {
+  from { opacity: 0; transform: translate3d(14px, 6px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* ============================================================
+   Chat message slide-in (no JSX changes needed)
+   The wrapper uses justify-end (mine) / justify-start (theirs).
+   ============================================================ */
+[id^="msg-"] {
+  animation: messageSlideInLeft 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+  will-change: transform, opacity;
+  contain: layout style;
+}
+[id^="msg-"].justify-end {
+  animation-name: messageSlideInRight;
+}
+
+/* ============================================================
+   Buttons — hover lift + active press + ripple host
+   ============================================================ */
+button,
+[role="button"],
+a.button,
+.btn {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  transition:
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+/* Only lift "real" pill/rounded buttons, not bare icon hit-targets.
+   shadcn's Button has rounded-md or rounded-full + a bg color. */
+.inline-flex.items-center.justify-center[class*="rounded-"]:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+.inline-flex.items-center.justify-center[class*="rounded-"]:not(:disabled):active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Icons inside buttons get a subtle pop */
+button:hover > svg,
+[role="button"]:hover > svg {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================================
+   Inputs — focus glow (no layout shift)
+   ============================================================ */
+input,
+textarea {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+input:focus-visible,
+textarea:focus-visible {
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.18);
+}
+
+/* ============================================================
+   Avatars — gentle hover
+   ============================================================ */
+[data-slot="avatar"],
+.avatar,
+span[class*="rounded-full"][class*="overflow-hidden"] {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease;
+}
+
+/* ============================================================
+   Skeleton shimmer
+   ============================================================ */
+.animate-pulse {
+  background-image: linear-gradient(
+    90deg,
+    hsl(var(--muted) / 0.4) 0%,
+    hsl(var(--muted) / 0.7) 50%,
+    hsl(var(--muted) / 0.4) 100%
+  );
+  background-size: 200px 100%;
+  background-repeat: no-repeat;
+  animation: skeletonWave 1.6s ease-in-out infinite;
+}
+
+/* ============================================================
+   Dialogs / tooltips already use data-state in shadcn.
+   Radix transitions handle entry; nothing extra to add — but
+   layer-promote them for smoother compositing.
+   ============================================================ */
+[data-radix-popper-content-wrapper],
+[role="dialog"],
+[role="tooltip"] {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* ============================================================
+   Chat surface — paint containment on heavy regions
+   ============================================================ */
+.chat-scroll {
+  contain: layout style;
+}
+
+/* Media gallery cards: scroll-reveal hover */
+.media-card {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s ease;
+  will-change: transform;
+}
+.media-card:hover {
+  transform: translateY(-3px) scale(1.02);
+}
+
+/* ============================================================
+   Send button micro-anim — class hook the component can opt into
+   ============================================================ */
+.send-btn:hover > svg {
+  transform: translateX(2px) rotate(-8deg) scale(1.1);
+}
+.send-btn:active > svg {
+  transform: translateX(4px) scale(0.92);
+}
+
+/* ============================================================
+   Header entry
+   ============================================================ */
+.header-enter {
+  animation: fadeDown 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ============================================================
+   Reduced motion kill switch
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
