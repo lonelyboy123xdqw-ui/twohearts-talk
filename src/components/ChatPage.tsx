@@ -1407,23 +1407,52 @@ export default function ChatPage() {
                   );
                 }
                 const lastSeenDate = partner.last_seen ? new Date(partner.last_seen) : null;
-                const statusText =
-                  partnerStatus === "online"
-                    ? "Online"
+                const isTypingNow = partnerTyping;
+                const statusText = isTypingNow
+                  ? "typing"
+                  : partnerStatus === "online"
+                    ? "Online now"
                     : partnerStatus === "idle"
-                      ? (lastSeenDate ? `Idle · last active ${formatDistanceToNow(lastSeenDate, { addSuffix: true })}` : "Idle")
+                      ? (lastSeenDate ? `Idle · ${formatDistanceToNow(lastSeenDate, { addSuffix: true })}` : "Idle")
                       : lastSeenDate
                         ? `Last seen ${formatDistanceToNow(lastSeenDate, { addSuffix: true })}`
                         : "Offline";
+                const statusTone =
+                  isTypingNow || partnerStatus === "online"
+                    ? "text-green-400"
+                    : partnerStatus === "idle"
+                      ? "text-yellow-400"
+                      : "text-muted-foreground";
+                const dotTone =
+                  isTypingNow || partnerStatus === "online"
+                    ? "bg-green-500"
+                    : partnerStatus === "idle"
+                      ? "bg-yellow-400"
+                      : "bg-muted-foreground/60";
+                const showPulse = isTypingNow || partnerStatus === "online";
                 return (
                   <span
-                    className="flex items-center gap-1.5 truncate"
+                    className="flex items-center gap-2 truncate"
                     title={lastSeenDate ? `Last active ${format(lastSeenDate, "PPp")}` : undefined}
                   >
-                    <span className={`w-2 h-2 rounded-full ${partnerMeta.dot}`} />
+                    <span className="relative inline-flex h-2.5 w-2.5 shrink-0">
+                      {showPulse && (
+                        <span className={`absolute inset-0 rounded-full ${dotTone} opacity-60 animate-status-pulse`} />
+                      )}
+                      <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${dotTone} ${showPulse ? "shadow-[0_0_8px_rgba(34,197,94,0.85)]" : ""}`} />
+                    </span>
                     <span className="truncate">
-                      <span className="font-medium text-foreground/80">{partner.display_name}</span>
-                      <span className={`ml-1 ${partnerMeta.text}`}>· {statusText}</span>
+                      <span className="font-medium text-foreground/90">{partner.display_name}</span>
+                      <span className={`ml-1.5 ${statusTone}`}>
+                        · {statusText}
+                        {isTypingNow && (
+                          <span className="inline-flex items-end gap-[2px] ml-1 align-middle">
+                            <span className="w-1 h-1 rounded-full bg-green-400 animate-typing-dot" style={{ animationDelay: "0ms" }} />
+                            <span className="w-1 h-1 rounded-full bg-green-400 animate-typing-dot" style={{ animationDelay: "150ms" }} />
+                            <span className="w-1 h-1 rounded-full bg-green-400 animate-typing-dot" style={{ animationDelay: "300ms" }} />
+                          </span>
+                        )}
+                      </span>
                     </span>
                   </span>
                 );
