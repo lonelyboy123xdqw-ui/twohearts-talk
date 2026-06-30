@@ -1,15 +1,15 @@
 {
-  "name": "Us Only",
-  "short_name": "Us Only",
-  "description": "Private chat for two 💕",
+  "name": "Soul Space",
+  "short_name": "Soul",
+  "description": "Private space",
   "id": "/",
   "scope": "/",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "categories": ["social", "lifestyle"],
-  "background_color": "#1a1613",
-  "theme_color": "#c9375d",
+  "background_color": "#06060f",
+  "theme_color": "#8b5cf6",
   "icons": [
     {
       "src": "/icon-192.png",

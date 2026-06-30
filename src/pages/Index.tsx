@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import AuthPage from "@/components/AuthPage";
 import ChatPage from "@/components/ChatPage";
+import AppLock from "@/components/AppLock";
 
 export default function Index() {
   const { user, loading } = useAuth();
@@ -13,5 +14,5 @@ export default function Index() {
     );
   }
 
-  return user ? <ChatPage /> : <AuthPage />;
+  return <AppLock>{user ? <ChatPage /> : <AuthPage />}</AppLock>;
 }
