@@ -1166,12 +1166,13 @@ export default function ChatPage() {
               </div>
             )}
             <div
-              className={`relative max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm ${
+              className={`relative max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] px-4 sm:px-5 py-2.5 sm:py-3 shadow-lg ${
                 mine
-                  ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground rounded-br-sm shadow-primary/30"
-                  : "bg-chat-theirs/80 rounded-bl-sm border border-border/40"
+                  ? "bg-gradient-to-br from-primary to-[hsl(255_84%_66%)] text-primary-foreground rounded-t-[28px] rounded-bl-[28px] rounded-br-[8px] shadow-primary/25"
+                  : "bg-chat-theirs text-foreground border border-white/10 rounded-t-[28px] rounded-br-[28px] rounded-bl-[8px] shadow-black/40"
               }`}
             >
+              {/* bubble */}
               {!mine && (
                 <p className="text-xs text-primary font-medium mb-0.5">
                   {profiles[msg.sender_id]?.display_name || "Love"}
@@ -1279,7 +1280,47 @@ export default function ChatPage() {
   };
 
   return (
-    <div className={`relative flex h-[100dvh] w-full ${mediaPanelOpen ? "flex-col md:flex-row" : "flex-col"}`}>
+    <div className="aurora-shell min-h-[100dvh] w-full flex md:p-4">
+      <div className="relative flex flex-1 min-h-0 min-w-0 md:rounded-[32px] md:border md:border-white/10 md:shadow-[0_0_80px_rgba(0,0,0,0.6)] overflow-hidden bg-background">
+        {/* Ambient aurora glows */}
+        <div className="aurora-glow-a" />
+        <div className="aurora-glow-b" />
+
+        {/* Left icon rail (desktop) */}
+        <aside className="hidden md:flex relative z-10 w-20 flex-col items-center py-8 gap-8 border-r border-white/5 bg-card/40 backdrop-blur-2xl">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
+            <span className="font-display italic text-2xl font-bold text-primary-foreground">U</span>
+          </div>
+          <nav className="flex flex-col gap-4">
+            <button
+              type="button"
+              className="p-3 rounded-2xl bg-white/10 text-primary shadow-inner"
+              title="Chat"
+            >
+              <Heart className="w-5 h-5" fill="currentColor" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMediaPanelOpen((v) => !v)}
+              className={`p-3 rounded-2xl transition-all ${mediaPanelOpen ? "bg-white/10 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-white/5"}`}
+              title="Shared media"
+            >
+              <Images className="w-5 h-5" />
+            </button>
+          </nav>
+          <div className="mt-auto flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={signOut}
+              className="p-3 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+              title="Sign out"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        </aside>
+
+        <div className={`relative z-10 flex flex-1 min-w-0 min-h-0 ${mediaPanelOpen ? "flex-col md:flex-row" : "flex-col"}`}>
       {/* Media side panel — left on PC, bottom on mobile */}
       {mediaPanelOpen && (
         <aside className="order-2 md:order-1 h-1/2 md:h-full md:w-[340px] lg:w-[380px] shrink-0 border-t md:border-t-0 md:border-r border-border/60 bg-card/40 backdrop-blur-xl flex flex-col min-h-0">
@@ -1340,7 +1381,7 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-semibold text-sm sm:text-base bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <span className="font-display text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent tracking-tight">
               Us Only
             </span>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -1600,8 +1641,9 @@ export default function ChatPage() {
       {!isRecording && (
         <form
           onSubmit={handleSend}
-          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 border-t border-border bg-card"
+          className="px-3 sm:px-6 py-3 sm:py-5"
         >
+          <div className="flex items-center gap-1 sm:gap-2 bg-card/80 backdrop-blur-xl border border-white/10 rounded-[28px] px-2 py-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
           <input
             type="file"
             accept="image/*"
@@ -1627,7 +1669,7 @@ export default function ChatPage() {
             variant="ghost"
             size="icon"
             onClick={() => fileInputRef.current?.click()}
-            className="shrink-0"
+            className="shrink-0 rounded-2xl text-primary hover:bg-white/5"
           >
             <ImagePlus className="w-4 h-4" />
           </Button>
@@ -1636,7 +1678,7 @@ export default function ChatPage() {
             variant="ghost"
             size="icon"
             onClick={() => videoInputRef.current?.click()}
-            className="shrink-0"
+            className="shrink-0 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-white/5"
             title="Send video"
           >
             <Film className="w-4 h-4" />
@@ -1646,7 +1688,7 @@ export default function ChatPage() {
             variant="ghost"
             size="icon"
             onClick={() => docInputRef.current?.click()}
-            className="shrink-0"
+            className="shrink-0 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-white/5"
             title="Send file"
           >
             <Paperclip className="w-4 h-4" />
@@ -1673,8 +1715,8 @@ export default function ChatPage() {
                 }
               }
             }}
-            placeholder="Type a message..."
-            className="flex-1 bg-secondary border-border"
+            placeholder="Write something lovely..."
+            className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none text-sm placeholder:text-muted-foreground/60"
             autoFocus
           />
           {newMsg.trim() || selectedImage || selectedFile || selectedVideo ? (
@@ -1682,7 +1724,7 @@ export default function ChatPage() {
               type="submit"
               size="icon"
               disabled={sending}
-              className="send-btn shrink-0"
+              className="send-btn shrink-0 rounded-2xl bg-gradient-to-r from-primary to-[hsl(255_84%_66%)] text-primary-foreground shadow-lg shadow-primary/30 hover:brightness-110"
             >
               <Send className="w-4 h-4" />
             </Button>
@@ -1692,11 +1734,12 @@ export default function ChatPage() {
               size="icon"
               variant="ghost"
               onClick={startRecording}
-              className="shrink-0"
+              className="shrink-0 rounded-2xl text-muted-foreground hover:text-accent hover:bg-white/5"
             >
               <Mic className="w-4 h-4" />
             </Button>
           )}
+          </div>
         </form>
       )}
       </div>
@@ -1781,6 +1824,8 @@ export default function ChatPage() {
           />
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }
