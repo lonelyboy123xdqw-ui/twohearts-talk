@@ -1172,6 +1172,7 @@ export default function ChatPage() {
                   : "bg-chat-theirs/80 rounded-bl-sm border border-border/40"
               }`}
             >
+              {/* bubble */}
               {!mine && (
                 <p className="text-xs text-primary font-medium mb-0.5">
                   {profiles[msg.sender_id]?.display_name || "Love"}
@@ -1380,7 +1381,7 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="font-semibold text-sm sm:text-base bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <span className="font-display text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent tracking-tight">
               Us Only
             </span>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
