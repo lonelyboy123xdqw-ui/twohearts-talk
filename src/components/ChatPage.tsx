@@ -1166,10 +1166,10 @@ export default function ChatPage() {
               </div>
             )}
             <div
-              className={`relative max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] rounded-2xl px-3 sm:px-4 py-2 sm:py-2.5 shadow-sm ${
+              className={`relative max-w-[78vw] sm:max-w-[60%] md:max-w-[55%] px-4 sm:px-5 py-2.5 sm:py-3 shadow-lg ${
                 mine
-                  ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground rounded-br-sm shadow-primary/30"
-                  : "bg-chat-theirs/80 rounded-bl-sm border border-border/40"
+                  ? "bg-gradient-to-br from-primary to-[hsl(255_84%_66%)] text-primary-foreground rounded-t-[28px] rounded-bl-[28px] rounded-br-[8px] shadow-primary/25"
+                  : "bg-chat-theirs text-foreground border border-white/10 rounded-t-[28px] rounded-br-[28px] rounded-bl-[8px] shadow-black/40"
               }`}
             >
               {/* bubble */}
