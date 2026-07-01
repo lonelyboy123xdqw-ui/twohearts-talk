@@ -1279,7 +1279,47 @@ export default function ChatPage() {
   };
 
   return (
-    <div className={`relative flex h-[100dvh] w-full ${mediaPanelOpen ? "flex-col md:flex-row" : "flex-col"}`}>
+    <div className="aurora-shell min-h-[100dvh] w-full flex md:p-4">
+      <div className="relative flex flex-1 min-h-0 min-w-0 md:rounded-[32px] md:border md:border-white/10 md:shadow-[0_0_80px_rgba(0,0,0,0.6)] overflow-hidden bg-background">
+        {/* Ambient aurora glows */}
+        <div className="aurora-glow-a" />
+        <div className="aurora-glow-b" />
+
+        {/* Left icon rail (desktop) */}
+        <aside className="hidden md:flex relative z-10 w-20 flex-col items-center py-8 gap-8 border-r border-white/5 bg-card/40 backdrop-blur-2xl">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
+            <span className="font-display italic text-2xl font-bold text-primary-foreground">U</span>
+          </div>
+          <nav className="flex flex-col gap-4">
+            <button
+              type="button"
+              className="p-3 rounded-2xl bg-white/10 text-primary shadow-inner"
+              title="Chat"
+            >
+              <Heart className="w-5 h-5" fill="currentColor" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setMediaPanelOpen((v) => !v)}
+              className={`p-3 rounded-2xl transition-all ${mediaPanelOpen ? "bg-white/10 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-white/5"}`}
+              title="Shared media"
+            >
+              <Images className="w-5 h-5" />
+            </button>
+          </nav>
+          <div className="mt-auto flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={signOut}
+              className="p-3 rounded-2xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+              title="Sign out"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        </aside>
+
+        <div className={`relative z-10 flex flex-1 min-w-0 min-h-0 ${mediaPanelOpen ? "flex-col md:flex-row" : "flex-col"}`}>
       {/* Media side panel — left on PC, bottom on mobile */}
       {mediaPanelOpen && (
         <aside className="order-2 md:order-1 h-1/2 md:h-full md:w-[340px] lg:w-[380px] shrink-0 border-t md:border-t-0 md:border-r border-border/60 bg-card/40 backdrop-blur-xl flex flex-col min-h-0">
