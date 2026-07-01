@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Pin, PinOff, Images, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Images, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
@@ -57,8 +57,7 @@ const areMessagesEqual = (a: Message, b: Message) =>
   a.file_url === b.file_url &&
   a.file_name === b.file_name &&
   a.file_type === b.file_type &&
-  a.video_url === b.video_url &&
-  (a.pinned ?? false) === (b.pinned ?? false);
+  a.video_url === b.video_url;
 
 const areMessageListsEqual = (a: Message[], b: Message[]) => {
   if (a.length !== b.length) return false;
@@ -154,7 +153,6 @@ interface Message {
   file_name?: string | null;
   file_type?: string | null;
   video_url?: string | null;
-  pinned?: boolean | null;
 }
 
 interface ProfileData {
@@ -1116,27 +1114,6 @@ export default function ChatPage() {
     }
   }, [user, myShowPresence]);
 
-  const togglePin = useCallback(async (msg: Message) => {
-    const next = !msg.pinned;
-    // optimistic
-    setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, pinned: next } : m)));
-    const { error } = await supabase
-      .from("messages")
-      .update({ pinned: next } as never)
-      .eq("id", msg.id);
-    if (error) {
-      setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, pinned: !next } : m)));
-      toast({ title: "Couldn't update pin", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: next ? "Message pinned 📌" : "Message unpinned" });
-    }
-  }, []);
-
-  const pinnedMessages = useMemo(
-    () => messages.filter((m) => m.pinned),
-    [messages],
-  );
-
   const mediaMessages = useMemo(
     () => messages.filter((m) => m.image_url || m.video_url).slice().reverse(),
     [messages],
@@ -1186,13 +1163,6 @@ export default function ChatPage() {
                 >
                   <Reply className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
-                <button
-                  onClick={() => togglePin(msg)}
-                  className="p-1 rounded-full hover:bg-muted"
-                  title={msg.pinned ? "Unpin" : "Pin"}
-                >
-                  {msg.pinned ? <PinOff className="w-3.5 h-3.5 text-accent" /> : <Pin className="w-3.5 h-3.5 text-muted-foreground" />}
-                </button>
               </div>
             )}
             <div
@@ -1200,13 +1170,8 @@ export default function ChatPage() {
                 mine
                   ? "bg-gradient-to-br from-primary to-primary/70 text-primary-foreground rounded-br-sm shadow-primary/30"
                   : "bg-chat-theirs/80 rounded-bl-sm border border-border/40"
-              } ${msg.pinned ? "ring-1 ring-accent/60" : ""}`}
+              }`}
             >
-              {msg.pinned && (
-                <span className="absolute -top-2 -left-2 bg-accent text-accent-foreground rounded-full p-0.5 shadow-md">
-                  <Pin className="w-2.5 h-2.5" fill="currentColor" />
-                </span>
-              )}
               {!mine && (
                 <p className="text-xs text-primary font-medium mb-0.5">
                   {profiles[msg.sender_id]?.display_name || "Love"}
@@ -1285,13 +1250,6 @@ export default function ChatPage() {
                 >
                   <Reply className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
-                <button
-                  onClick={() => togglePin(msg)}
-                  className="p-1 rounded-full hover:bg-muted"
-                  title={msg.pinned ? "Unpin" : "Pin"}
-                >
-                  {msg.pinned ? <PinOff className="w-3.5 h-3.5 text-accent" /> : <Pin className="w-3.5 h-3.5 text-muted-foreground" />}
-                </button>
               </div>
             )}
             {mine && (
@@ -1309,7 +1267,7 @@ export default function ChatPage() {
         </div>
       );
     });
-  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id, togglePin]);
+  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id]);
 
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
@@ -1536,28 +1494,6 @@ export default function ChatPage() {
       </header>
 
       {/* Messages */}
-      {pinnedMessages.length > 0 && (
-        <div className="border-b border-border/50 bg-accent/5 backdrop-blur-sm px-2 sm:px-3 py-1.5 flex items-center gap-2 overflow-x-auto scrollbar-hide">
-          <Pin className="w-3.5 h-3.5 text-accent shrink-0" fill="currentColor" />
-          <div className="flex items-center gap-2">
-            {pinnedMessages.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => scrollToMessage(p.id)}
-                className="shrink-0 max-w-[180px] sm:max-w-[260px] text-left px-2 py-1 rounded-md bg-card/70 hover:bg-card border border-accent/30 text-[11px] leading-snug"
-                title="Jump to pinned message"
-              >
-                <span className="text-accent font-medium block truncate">
-                  {profiles[p.sender_id]?.display_name || "Love"}
-                </span>
-                <span className="text-muted-foreground line-clamp-1 break-words">
-                  {p.image_url && !p.content ? "📷 Photo" : p.video_url && !p.content ? "🎬 Video" : p.file_url && !p.content ? `📎 ${p.file_name}` : p.content || "Pinned"}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       <div ref={messagesContainerRef} className="chat-scroll flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide overscroll-contain">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
