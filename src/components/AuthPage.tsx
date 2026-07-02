@@ -62,9 +62,9 @@ export default function AuthPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/20 mb-4">
             <Heart className="w-8 h-8 text-primary" fill="currentColor" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Us Only</h1>
+          <h1 className="text-3xl font-bold tracking-tight">CHOCU</h1>
           <p className="text-muted-foreground text-sm">
-            Your private space 💕
+            Chatting and Chilling
           </p>
         </div>
 
