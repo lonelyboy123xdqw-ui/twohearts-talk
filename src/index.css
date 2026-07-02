@@ -2,51 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
 @layer base {
   :root {
-    /* Aurora Cinematic — locked palette */
-    /* bg #1a1a2e / surface #16213e / violet #a78bfa / aurora #4ade80 */
-    --background: 240 29% 14%;         /* #1a1a2e */
-    --foreground: 210 40% 96%;
+    /* Romantic midnight + rose-gold theme */
+    --background: 230 35% 7%;
+    --foreground: 30 30% 94%;
 
-    --card: 220 46% 17%;               /* #16213e */
-    --card-foreground: 210 40% 96%;
+    --card: 230 30% 11%;
+    --card-foreground: 30 30% 94%;
 
-    --popover: 220 46% 17%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 230 30% 11%;
+    --popover-foreground: 30 30% 94%;
 
-    --primary: 255 92% 76%;            /* #a78bfa violet */
-    --primary-foreground: 240 29% 12%;
+    --primary: 345 82% 62%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 40% 20%;
-    --secondary-foreground: 210 40% 92%;
+    --secondary: 230 25% 15%;
+    --secondary-foreground: 30 20% 85%;
 
-    --muted: 220 30% 18%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 230 22% 13%;
+    --muted-foreground: 230 10% 60%;
 
-    --accent: 142 71% 58%;             /* #4ade80 aurora */
-    --accent-foreground: 240 29% 10%;
+    --accent: 35 90% 62%;
+    --accent-foreground: 230 35% 10%;
 
     --destructive: 0 72% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 30% 22%;
-    --input: 220 30% 22%;
-    --ring: 255 92% 76%;
+    --border: 230 20% 18%;
+    --input: 230 20% 18%;
+    --ring: 345 82% 62%;
 
-    --radius: 1.5rem;
+    --radius: 1rem;
 
-    --sidebar-background: 220 46% 15%;
-    --sidebar-foreground: 210 30% 88%;
-    --sidebar-primary: 255 92% 76%;
-    --sidebar-primary-foreground: 240 29% 12%;
-    --sidebar-accent: 220 40% 20%;
-    --sidebar-accent-foreground: 210 30% 88%;
-    --sidebar-border: 220 30% 22%;
-    --sidebar-ring: 255 92% 76%;
+    --sidebar-background: 230 32% 9%;
+    --sidebar-foreground: 30 20% 85%;
+    --sidebar-primary: 345 82% 62%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 230 25% 14%;
+    --sidebar-accent-foreground: 30 20% 85%;
+    --sidebar-border: 230 20% 18%;
+    --sidebar-ring: 345 82% 62%;
 
-    --chat-bubble-mine: 255 92% 76%;
-    --chat-bubble-theirs: 220 46% 17%;
+    --chat-bubble-mine: 345 55% 38%;
+    --chat-bubble-theirs: 230 25% 16%;
   }
 }
 
@@ -65,15 +66,13 @@
 
   body {
     @apply text-foreground;
-    font-family: 'Karla', system-ui, -apple-system, sans-serif;
-    background: #0d0d1a;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background:
+      radial-gradient(ellipse at top left, hsl(345 60% 18% / 0.55), transparent 55%),
+      radial-gradient(ellipse at bottom right, hsl(35 70% 18% / 0.45), transparent 55%),
+      linear-gradient(145deg, hsl(230 35% 7%) 0%, hsl(245 32% 10%) 50%, hsl(225 35% 8%) 100%);
     background-attachment: fixed;
     min-height: 100vh;
-  }
-
-  .font-display {
-    font-family: 'Cormorant Garamond', ui-serif, Georgia, serif;
-    letter-spacing: -0.01em;
   }
 }
 
@@ -86,43 +85,6 @@
     display: none;
   }
 
-  .aurora-scrollbar::-webkit-scrollbar { width: 8px; }
-  .aurora-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.25);
-    border-radius: 999px;
-  }
-  .aurora-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.45);
-  }
-
-  .aurora-shell {
-    background: #0d0d1a;
-  }
-  .aurora-glow-a,
-  .aurora-glow-b {
-    position: absolute;
-    width: 28rem;
-    height: 28rem;
-    border-radius: 9999px;
-    filter: blur(120px);
-    pointer-events: none;
-    z-index: 0;
-  }
-  .aurora-glow-a {
-    top: -6rem; right: -6rem;
-    background: hsl(255 92% 76% / 0.18);
-    animation: floatSlow 14s ease-in-out infinite;
-  }
-  .aurora-glow-b {
-    bottom: -6rem; left: -6rem;
-    background: hsl(142 71% 58% / 0.12);
-    animation: floatSlow 18s ease-in-out infinite reverse;
-  }
-  @keyframes floatSlow {
-    0%,100% { transform: translate3d(0,0,0) scale(1); }
-    50%     { transform: translate3d(20px,-15px,0) scale(1.08); }
-  }
-
   .gpu {
     transform: translateZ(0);
     -webkit-backface-visibility: hidden;
@@ -131,7 +93,7 @@
   }
 
   .text-gradient-flow {
-    background: linear-gradient(90deg, hsl(255 92% 78%), hsl(142 71% 62%), hsl(255 92% 78%));
+    background: linear-gradient(90deg, hsl(345 82% 70%), hsl(35 90% 65%), hsl(345 82% 70%));
     background-size: 200% auto;
     -webkit-background-clip: text;
     background-clip: text;
