@@ -16,6 +16,11 @@ const TYPING_THROTTLE_MS = 1800;
 const MESSAGE_UPDATE_BATCH_MS = 80;
 const IDLE_AFTER_MS = 5 * 60 * 1000; // 5 min of no activity → idle (Discord-like)
 
+const makeUploadId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 type PresenceStatus = "online" | "idle" | "offline";
 
 const STATUS_META: Record<PresenceStatus, { label: string; dot: string; ring: string; text: string }> = {
@@ -1047,7 +1052,7 @@ export default function ChatPage() {
 
       if (selectedImage) {
         const ext = selectedImage.name.split(".").pop() || "jpg";
-        const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
+        const path = `${user.id}/${Date.now()}-${makeUploadId()}.${ext}`;
         const { error } = await supabase.storage
           .from("chat-images")
           .upload(path, selectedImage, { contentType: selectedImage.type });
@@ -1060,7 +1065,7 @@ export default function ChatPage() {
 
       if (selectedVideo) {
         const ext = selectedVideo.name.split(".").pop() || "mp4";
-        const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}-vid.${ext}`;
+        const path = `${user.id}/${Date.now()}-${makeUploadId()}-vid.${ext}`;
         const { error } = await supabase.storage.from("chat-files").upload(path, selectedVideo, { contentType: selectedVideo.type });
         if (error) throw new Error(`Video upload failed: ${error.message}`);
         video_url = supabase.storage.from("chat-files").getPublicUrl(path).data.publicUrl;
@@ -1068,7 +1073,7 @@ export default function ChatPage() {
 
       if (selectedFile) {
         const safeName = selectedFile.name.replace(/[^\w.-]/g, "_");
-        const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+        const path = `${user.id}/${Date.now()}-${makeUploadId()}-${safeName}`;
         const { error } = await supabase.storage.from("chat-files").upload(path, selectedFile, { contentType: selectedFile.type });
         if (error) throw new Error(`File upload failed: ${error.message}`);
         file_url = supabase.storage.from("chat-files").getPublicUrl(path).data.publicUrl;
