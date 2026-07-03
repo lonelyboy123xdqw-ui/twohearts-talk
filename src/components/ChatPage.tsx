@@ -16,6 +16,11 @@ const TYPING_THROTTLE_MS = 1800;
 const MESSAGE_UPDATE_BATCH_MS = 80;
 const IDLE_AFTER_MS = 5 * 60 * 1000; // 5 min of no activity → idle (Discord-like)
 
+const makeUploadId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 type PresenceStatus = "online" | "idle" | "offline";
 
 const STATUS_META: Record<PresenceStatus, { label: string; dot: string; ring: string; text: string }> = {
@@ -231,6 +236,39 @@ export default function ChatPage() {
   useEffect(() => {
     userIdRef.current = user?.id;
   }, [user?.id]);
+
+  const ensureActiveSession = useCallback(async () => {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+    const session = sessionData.session;
+    if (!session) throw new Error("Please sign in again before sending.");
+
+    const expiresSoon = session.expires_at ? session.expires_at * 1000 - Date.now() < 60_000 : false;
+    if (expiresSoon) {
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) throw refreshError;
+      if (!refreshData.session) throw new Error("Please sign in again before sending.");
+    }
+  }, []);
+
+  const insertMessageWithRetry = useCallback(async (message: MessageInsert) => {
+    await ensureActiveSession();
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error } = await supabase.from("messages").insert(message);
+      if (!error) return;
+
+      lastError = error;
+      const authExpired = /jwt|token|auth|expired|session/i.test(error.message);
+      if (authExpired) {
+        await ensureActiveSession();
+      }
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
+    }
+
+    throw lastError instanceof Error ? lastError : new Error("Message could not be delivered.");
+  }, [ensureActiveSession]);
 
   // Online/offline detection
   useEffect(() => {
@@ -727,6 +765,14 @@ export default function ChatPage() {
           queueMessageUpdate(payload.new as Message);
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "messages" },
+        (payload) => {
+          const oldMsg = payload.old as Pick<Message, "id">;
+          setMessages((prev) => prev.filter((m) => m.id !== oldMsg.id));
+        }
+      )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
           setTimeout(() => {
@@ -930,9 +976,11 @@ export default function ChatPage() {
         if (blob.size === 0 || !user) return;
 
         setSending(true);
-        const path = `${user.id}/${Date.now()}.webm`;
-        const { error } = await supabase.storage.from("voice-messages").upload(path, blob);
-        if (!error) {
+        try {
+          await ensureActiveSession();
+          const path = `${user.id}/${Date.now()}.webm`;
+          const { error } = await supabase.storage.from("voice-messages").upload(path, blob);
+          if (error) throw new Error(`Voice upload failed: ${error.message}`);
           const { data: urlData } = supabase.storage.from("voice-messages").getPublicUrl(path);
           const voiceMessage: MessageInsert = {
             sender_id: user.id,
@@ -941,10 +989,16 @@ export default function ChatPage() {
             audio_url: urlData.publicUrl,
             reply_to_id: replyTo?.id || null,
           };
-          await supabase.from("messages").insert(voiceMessage);
+          await insertMessageWithRetry(voiceMessage);
           setReplyTo(null);
+        } catch (err) {
+          toast({
+            title: "Voice message failed",
+            description: err instanceof Error ? err.message : "Please check your connection and try again.",
+          });
+        } finally {
+          setSending(false);
         }
-        setSending(false);
       };
 
       mediaRecorder.start();
@@ -987,84 +1041,74 @@ export default function ChatPage() {
     const msgContent = newMsg.trim();
     const replyId = replyTo?.id || null;
 
-    // Clear input immediately for snappy UX
-    setNewMsg("");
-    setReplyTo(null);
+    try {
+      await ensureActiveSession();
 
-    let image_url: string | null = null;
-    let file_url: string | null = null;
-    let file_name: string | null = null;
-    let file_type: string | null = null;
-    let video_url: string | null = null;
+      let image_url: string | null = null;
+      let file_url: string | null = null;
+      let file_name: string | null = null;
+      let file_type: string | null = null;
+      let video_url: string | null = null;
 
-    if (selectedImage) {
-      const ext = selectedImage.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
-        .from("chat-images")
-        .upload(path, selectedImage);
-      if (!error) {
+      if (selectedImage) {
+        const ext = selectedImage.name.split(".").pop() || "jpg";
+        const path = `${user.id}/${Date.now()}-${makeUploadId()}.${ext}`;
+        const { error } = await supabase.storage
+          .from("chat-images")
+          .upload(path, selectedImage, { contentType: selectedImage.type });
+        if (error) throw new Error(`Photo upload failed: ${error.message}`);
         const { data: urlData } = supabase.storage
           .from("chat-images")
           .getPublicUrl(path);
         image_url = urlData.publicUrl;
       }
-    }
 
-    if (selectedVideo) {
-      const ext = selectedVideo.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}-vid.${ext}`;
-      const { error } = await supabase.storage.from("chat-files").upload(path, selectedVideo, { contentType: selectedVideo.type });
-      if (!error) {
+      if (selectedVideo) {
+        const ext = selectedVideo.name.split(".").pop() || "mp4";
+        const path = `${user.id}/${Date.now()}-${makeUploadId()}-vid.${ext}`;
+        const { error } = await supabase.storage.from("chat-files").upload(path, selectedVideo, { contentType: selectedVideo.type });
+        if (error) throw new Error(`Video upload failed: ${error.message}`);
         video_url = supabase.storage.from("chat-files").getPublicUrl(path).data.publicUrl;
       }
-    }
 
-    if (selectedFile) {
-      const safeName = selectedFile.name.replace(/[^\w.-]/g, "_");
-      const path = `${user.id}/${Date.now()}-${safeName}`;
-      const { error } = await supabase.storage.from("chat-files").upload(path, selectedFile, { contentType: selectedFile.type });
-      if (!error) {
+      if (selectedFile) {
+        const safeName = selectedFile.name.replace(/[^\w.-]/g, "_");
+        const path = `${user.id}/${Date.now()}-${makeUploadId()}-${safeName}`;
+        const { error } = await supabase.storage.from("chat-files").upload(path, selectedFile, { contentType: selectedFile.type });
+        if (error) throw new Error(`File upload failed: ${error.message}`);
         file_url = supabase.storage.from("chat-files").getPublicUrl(path).data.publicUrl;
         file_name = selectedFile.name;
         file_type = selectedFile.type || "application/octet-stream";
       }
+
+      const outgoingMessage: MessageInsert = {
+        sender_id: user.id,
+        content: msgContent,
+        image_url,
+        audio_url: null,
+        reply_to_id: replyId,
+        file_url,
+        file_name,
+        file_type,
+        video_url,
+      };
+
+      await insertMessageWithRetry(outgoingMessage);
+      setNewMsg("");
+      setReplyTo(null);
+      clearImage();
+      clearFile();
+      clearVideo();
+      fetchMessages();
+      inputRef.current?.focus();
+    } catch (err) {
+      toast({
+        title: "Message failed to send",
+        description: err instanceof Error ? err.message : "Please check your connection and try again.",
+      });
+    } finally {
+      setSending(false);
     }
-
-    clearImage();
-    clearFile();
-    clearVideo();
-
-    // Retry up to 3 times on failure
-    let attempts = 0;
-    let success = false;
-    const outgoingMessage: MessageInsert = {
-      sender_id: user.id,
-      content: msgContent,
-      image_url,
-      audio_url: null,
-      reply_to_id: replyId,
-      file_url,
-      file_name,
-      file_type,
-      video_url,
-    };
-    while (attempts < 3 && !success) {
-      const { error } = await supabase.from("messages").insert(outgoingMessage);
-      if (!error) {
-        success = true;
-      } else {
-        attempts++;
-        if (attempts < 3) await new Promise((r) => setTimeout(r, 1000 * attempts));
-      }
-    }
-
-    if (!success) {
-      toast({ title: "Message failed to send", description: "Please check your connection and try again." });
-      setNewMsg(msgContent); // Restore message so user doesn't lose it
-    }
-
-    setSending(false);
   };
 
   const isMine = (msg: Message) => msg.sender_id === user?.id;
