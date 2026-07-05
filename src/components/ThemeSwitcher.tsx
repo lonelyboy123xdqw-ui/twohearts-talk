@@ -10,7 +10,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type ChatTheme = "twilight" | "neon" | "aurora" | "classic";
+export type ChatTheme =
+  | "twilight"
+  | "neon"
+  | "aurora"
+  | "classic"
+  | "cyberpunk"
+  | "sunset"
+  | "galaxy"
+  | "molten"
+  | "vaporwave"
+  | "emerald"
+  | "bloodmoon"
+  | "iridescent"
+  | "matrix"
+  | "candy";
 
 const THEMES: { id: ChatTheme; label: string; hint: string; swatch: string[] }[] = [
   { id: "twilight", label: "Twilight Bloom", hint: "Rose-gold on obsidian plum",
@@ -21,6 +35,26 @@ const THEMES: { id: ChatTheme; label: string; hint: string; swatch: string[] }[]
     swatch: ["#0a1a2f", "#34d399", "#a78bfa"] },
   { id: "classic", label: "Classic", hint: "Warm cream + navy",
     swatch: ["#f5f1e8", "#1e3a5f", "#c94f4f"] },
+  { id: "cyberpunk", label: "Cyberpunk 2088", hint: "Hot yellow + hot pink on ink",
+    swatch: ["#0a0014", "#f9f871", "#ff2e93"] },
+  { id: "sunset", label: "Sunset Blaze", hint: "Molten orange to deep magenta",
+    swatch: ["#1a0510", "#ff6a3d", "#ff2975"] },
+  { id: "galaxy", label: "Galaxy Drift", hint: "Nebula violet + stardust blue",
+    swatch: ["#08061f", "#7c3aed", "#38bdf8"] },
+  { id: "molten", label: "Molten Gold", hint: "Liquid gold on charred black",
+    swatch: ["#0d0906", "#f5b301", "#ff6b1a"] },
+  { id: "vaporwave", label: "Vaporwave", hint: "Pastel pink + cyan chrome",
+    swatch: ["#1a0b2e", "#ff71ce", "#01cdfe"] },
+  { id: "emerald", label: "Emerald Noir", hint: "Deep jade + champagne",
+    swatch: ["#040f0a", "#10b981", "#eab308"] },
+  { id: "bloodmoon", label: "Blood Moon", hint: "Crimson + ember on ash",
+    swatch: ["#100303", "#dc2626", "#fb923c"] },
+  { id: "iridescent", label: "Iridescent", hint: "Holographic prism shift",
+    swatch: ["#0a0518", "#c084fc", "#5eead4"] },
+  { id: "matrix", label: "Matrix", hint: "Phosphor green on terminal black",
+    swatch: ["#000000", "#00ff9c", "#4ade80"] },
+  { id: "candy", label: "Candy Dream", hint: "Cotton pink + mint on cream",
+    swatch: ["#fff0f7", "#ff5aa1", "#4dd4c8"] },
 ];
 
 const STORAGE_KEY = "chat_theme";
