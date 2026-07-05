@@ -8,6 +8,7 @@ import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDown
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
@@ -1534,6 +1535,7 @@ export default function ChatPage() {
           <Button variant="ghost" size="icon" onClick={signOut}>
             <LogOut className="w-4 h-4" />
           </Button>
+          <ThemeSwitcher />
         </div>
       </header>
 

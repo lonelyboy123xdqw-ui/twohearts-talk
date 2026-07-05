@@ -7,6 +7,12 @@ import "@fontsource/karla/400.css";
 import "@fontsource/karla/500.css";
 import "@fontsource/karla/600.css";
 
+// Apply persisted chat theme before first paint to avoid flash
+try {
+  const t = localStorage.getItem("chat_theme") || "twilight";
+  document.documentElement.dataset.theme = t;
+} catch { /* ignore */ }
+
 createRoot(document.getElementById("root")!).render(<App />);
 
 // Service worker: register only in production on the real origin, never in
