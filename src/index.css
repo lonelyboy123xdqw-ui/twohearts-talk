@@ -944,3 +944,10 @@ span[class*="rounded-full"][class*="overflow-hidden"] {
 @supports (height: 100dvh) {
   /* Already using 100dvh in components */
 }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
