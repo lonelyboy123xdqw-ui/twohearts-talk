@@ -24,7 +24,15 @@ export type ChatTheme =
   | "bloodmoon"
   | "iridescent"
   | "matrix"
-  | "candy";
+  | "candy"
+  | "oceanic"
+  | "frostbite"
+  | "sakura"
+  | "obsidian"
+  | "electric"
+  | "inferno"
+  | "royal"
+  | "midnight";
 
 const THEMES: { id: ChatTheme; label: string; hint: string; swatch: string[] }[] = [
   { id: "twilight", label: "Twilight Bloom", hint: "Rose-gold on obsidian plum",
@@ -55,6 +63,22 @@ const THEMES: { id: ChatTheme; label: string; hint: string; swatch: string[] }[]
     swatch: ["#000000", "#00ff9c", "#4ade80"] },
   { id: "candy", label: "Candy Dream", hint: "Cotton pink + mint on cream",
     swatch: ["#fff0f7", "#ff5aa1", "#4dd4c8"] },
+  { id: "oceanic", label: "Oceanic", hint: "Bioluminescent cyan on abyssal black",
+    swatch: ["#020617", "#06b6d4", "#3b82f6"] },
+  { id: "frostbite", label: "Frostbite", hint: "Arctic ice + glacial teal",
+    swatch: ["#f0f9ff", "#0284c7", "#2dd4bf"] },
+  { id: "sakura", label: "Sakura", hint: "Cherry blossom pink + lavender",
+    swatch: ["#fdf2f8", "#f472b6", "#a78bfa"] },
+  { id: "obsidian", label: "Obsidian", hint: "Brutalist black + amber strike",
+    swatch: ["#0a0a0a", "#f59e0b", "#e5e5e5"] },
+  { id: "electric", label: "Electric", hint: "Neon lime + hot magenta",
+    swatch: ["#120524", "#39ff14", "#ff00ff"] },
+  { id: "inferno", label: "Inferno", hint: "Lava red + sulfur yellow",
+    swatch: ["#140502", "#ff4500", "#ffd700"] },
+  { id: "royal", label: "Royal", hint: "Imperial gold on midnight purple",
+    swatch: ["#110b1f", "#f5b301", "#8b5cf6"] },
+  { id: "midnight", label: "Midnight", hint: "Silver moonlight on deep navy",
+    swatch: ["#080c14", "#93c5fd", "#7c3aed"] },
 ];
 
 const STORAGE_KEY = "chat_theme";
