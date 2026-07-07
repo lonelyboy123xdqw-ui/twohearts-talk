@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import AuthPage from "@/components/AuthPage";
 import ChatPage from "@/components/ChatPage";
+import LockScreen from "@/components/LockScreen";
 
 export default function Index() {
   const { user, loading } = useAuth();
+  const [unlocked, setUnlocked] = useState(false);
 
   if (loading) {
     return (
@@ -12,6 +15,8 @@ export default function Index() {
       </div>
     );
   }
+
+  if (!unlocked) return <LockScreen onUnlock={() => setUnlocked(true)} />;
 
   return user ? <ChatPage /> : <AuthPage />;
 }
