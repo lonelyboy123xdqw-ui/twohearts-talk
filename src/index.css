@@ -951,3 +951,360 @@ span[class*="rounded-full"][class*="overflow-hidden"] {
   60% { transform: translateX(-6px); }
   80% { transform: translateX(6px); }
 }
+
+/* ================= Oceanic — deep sea abyss + bioluminescent cyan ================= */
+[data-theme="oceanic"] {
+  --background: 210 60% 4%;
+  --foreground: 190 40% 96%;
+  --card: 210 50% 8%;
+  --card-foreground: 190 40% 96%;
+  --popover: 210 52% 7%;
+  --popover-foreground: 190 40% 96%;
+  --primary: 185 95% 55%;
+  --primary-foreground: 210 60% 6%;
+  --primary-glow: 175 90% 65%;
+  --secondary: 210 38% 14%;
+  --secondary-foreground: 190 35% 94%;
+  --muted: 210 32% 12%;
+  --muted-foreground: 200 25% 74%;
+  --accent: 220 90% 60%;
+  --accent-foreground: 210 60% 6%;
+  --accent-glow: 200 95% 65%;
+  --destructive: 358 82% 62%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 40% 22%;
+  --input: 210 32% 18%;
+  --ring: 185 95% 55%;
+  --sidebar-background: 210 55% 6%;
+  --sidebar-foreground: 190 35% 94%;
+  --sidebar-primary: 185 95% 55%;
+  --sidebar-primary-foreground: 210 60% 6%;
+  --sidebar-accent: 210 35% 13%;
+  --sidebar-accent-foreground: 190 35% 94%;
+  --sidebar-border: 210 32% 20%;
+  --sidebar-ring: 185 95% 55%;
+  --chat-bubble-mine: 185 85% 42%;
+  --chat-bubble-theirs: 210 35% 16%;
+  --gradient-primary: linear-gradient(135deg, hsl(185 95% 55%), hsl(200 95% 60%) 50%, hsl(220 90% 60%));
+  --gradient-aurora: radial-gradient(ellipse 85% 65% at 12% 8%, hsl(185 95% 25% / 0.55), transparent 62%),
+                     radial-gradient(ellipse 70% 60% at 90% 92%, hsl(220 90% 28% / 0.5), transparent 62%),
+                     radial-gradient(ellipse 60% 55% at 78% 20%, hsl(200 95% 30% / 0.45), transparent 65%);
+  --gradient-obsidian: linear-gradient(160deg, hsl(210 60% 4%), hsl(215 55% 7%) 55%, hsl(210 60% 4%));
+  --glow-primary: 0 0 32px hsl(185 95% 55% / 0.5), 0 0 80px hsl(175 90% 65% / 0.28);
+  --glow-accent:  0 0 28px hsl(220 90% 60% / 0.48), 0 0 72px hsl(200 95% 65% / 0.25);
+  --shadow-elegant: 0 24px 60px -18px hsl(185 95% 30% / 0.5), 0 8px 24px -12px hsl(210 60% 3% / 0.8);
+}
+
+/* ================= Frostbite — arctic ice + glacial teal (light) ================= */
+[data-theme="frostbite"] {
+  --background: 200 30% 97%;
+  --foreground: 210 50% 18%;
+  --card: 200 30% 99%;
+  --card-foreground: 210 50% 18%;
+  --popover: 200 30% 99%;
+  --popover-foreground: 210 50% 18%;
+  --primary: 200 90% 45%;
+  --primary-foreground: 0 0% 100%;
+  --primary-glow: 190 85% 55%;
+  --secondary: 200 25% 90%;
+  --secondary-foreground: 210 50% 18%;
+  --muted: 200 20% 93%;
+  --muted-foreground: 210 20% 45%;
+  --accent: 180 70% 55%;
+  --accent-foreground: 210 60% 6%;
+  --accent-glow: 175 75% 62%;
+  --destructive: 0 72% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 200 30% 86%;
+  --input: 200 25% 92%;
+  --ring: 200 90% 45%;
+  --sidebar-background: 200 30% 95%;
+  --sidebar-foreground: 210 50% 18%;
+  --sidebar-primary: 200 90% 45%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 200 25% 92%;
+  --sidebar-accent-foreground: 210 50% 18%;
+  --sidebar-border: 200 25% 84%;
+  --sidebar-ring: 200 90% 45%;
+  --chat-bubble-mine: 200 80% 48%;
+  --chat-bubble-theirs: 200 25% 88%;
+  --gradient-primary: linear-gradient(135deg, hsl(200 90% 45%), hsl(190 85% 55%) 50%, hsl(180 70% 55%));
+  --gradient-aurora: radial-gradient(ellipse 85% 60% at 12% 8%, hsl(200 90% 82% / 0.5), transparent 62%),
+                     radial-gradient(ellipse 70% 60% at 88% 92%, hsl(180 70% 80% / 0.45), transparent 62%);
+  --gradient-obsidian: linear-gradient(160deg, hsl(200 35% 98%), hsl(200 25% 94%) 55%, hsl(200 30% 97%));
+  --glow-primary: 0 0 24px hsl(200 90% 45% / 0.25), 0 0 60px hsl(190 85% 55% / 0.15);
+  --glow-accent:  0 0 24px hsl(180 70% 55% / 0.25), 0 0 60px hsl(175 75% 62% / 0.15);
+  --shadow-elegant: 0 20px 44px -22px hsl(200 60% 40% / 0.28), 0 6px 18px -10px hsl(210 30% 50% / 0.18);
+}
+[data-theme="frostbite"] body::before {
+  background: radial-gradient(ellipse at center, transparent 60%, hsl(200 30% 70% / 0.25) 100%);
+}
+
+/* ================= Sakura — cherry blossom pink + lavender (light) ================= */
+[data-theme="sakura"] {
+  --background: 340 50% 97%;
+  --foreground: 320 40% 22%;
+  --card: 340 55% 99%;
+  --card-foreground: 320 40% 22%;
+  --popover: 340 55% 99%;
+  --popover-foreground: 320 40% 22%;
+  --primary: 340 85% 68%;
+  --primary-foreground: 0 0% 100%;
+  --primary-glow: 330 80% 78%;
+  --secondary: 320 30% 92%;
+  --secondary-foreground: 320 40% 22%;
+  --muted: 330 30% 94%;
+  --muted-foreground: 320 20% 50%;
+  --accent: 280 60% 65%;
+  --accent-foreground: 0 0% 100%;
+  --accent-glow: 270 65% 72%;
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 330 40% 88%;
+  --input: 330 45% 94%;
+  --ring: 340 85% 68%;
+  --sidebar-background: 340 50% 95%;
+  --sidebar-foreground: 320 40% 22%;
+  --sidebar-primary: 340 85% 68%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 330 40% 92%;
+  --sidebar-accent-foreground: 320 40% 22%;
+  --sidebar-border: 330 35% 86%;
+  --sidebar-ring: 340 85% 68%;
+  --chat-bubble-mine: 340 80% 65%;
+  --chat-bubble-theirs: 330 35% 90%;
+  --gradient-primary: linear-gradient(135deg, hsl(340 85% 68%), hsl(320 80% 72%) 50%, hsl(280 60% 65%));
+  --gradient-aurora: radial-gradient(ellipse 85% 60% at 12% 8%, hsl(340 85% 82% / 0.5), transparent 62%),
+                     radial-gradient(ellipse 70% 60% at 88% 92%, hsl(280 60% 80% / 0.45), transparent 62%);
+  --gradient-obsidian: linear-gradient(160deg, hsl(340 60% 98%), hsl(330 50% 95%) 55%, hsl(340 50% 97%));
+  --glow-primary: 0 0 24px hsl(340 85% 68% / 0.25), 0 0 60px hsl(330 80% 78% / 0.15);
+  --glow-accent:  0 0 24px hsl(280 60% 65% / 0.25), 0 0 60px hsl(270 65% 72% / 0.15);
+  --shadow-elegant: 0 20px 44px -22px hsl(340 60% 55% / 0.3), 0 6px 18px -10px hsl(320 40% 50% / 0.18);
+}
+[data-theme="sakura"] body::before {
+  background: radial-gradient(ellipse at center, transparent 60%, hsl(340 50% 75% / 0.25) 100%);
+}
+
+/* ================= Obsidian — brutalist black + amber accent ================= */
+[data-theme="obsidian"] {
+  --background: 0 0% 4%;
+  --foreground: 0 0% 96%;
+  --card: 0 0% 8%;
+  --card-foreground: 0 0% 96%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 96%;
+  --primary: 35 100% 55%;
+  --primary-foreground: 0 0% 4%;
+  --primary-glow: 45 100% 62%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 92%;
+  --muted: 0 0% 11%;
+  --muted-foreground: 0 0% 65%;
+  --accent: 0 0% 92%;
+  --accent-foreground: 0 0% 4%;
+  --accent-glow: 0 0% 100%;
+  --destructive: 0 82% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 18%;
+  --input: 0 0% 14%;
+  --ring: 35 100% 55%;
+  --sidebar-background: 0 0% 6%;
+  --sidebar-foreground: 0 0% 92%;
+  --sidebar-primary: 35 100% 55%;
+  --sidebar-primary-foreground: 0 0% 4%;
+  --sidebar-accent: 0 0% 12%;
+  --sidebar-accent-foreground: 0 0% 92%;
+  --sidebar-border: 0 0% 16%;
+  --sidebar-ring: 35 100% 55%;
+  --chat-bubble-mine: 35 90% 48%;
+  --chat-bubble-theirs: 0 0% 14%;
+  --gradient-primary: linear-gradient(135deg, hsl(35 100% 55%), hsl(45 100% 58%) 50%, hsl(0 0% 92%));
+  --gradient-aurora: radial-gradient(ellipse 85% 65% at 12% 8%, hsl(35 100% 25% / 0.5), transparent 62%),
+                     radial-gradient(ellipse 70% 60% at 90% 92%, hsl(0 0% 40% / 0.35), transparent 62%);
+  --gradient-obsidian: linear-gradient(160deg, hsl(0 0% 4%), hsl(0 0% 7%) 55%, hsl(0 0% 4%));
+  --glow-primary: 0 0 32px hsl(35 100% 55% / 0.5), 0 0 80px hsl(45 100% 62% / 0.28);
+  --glow-accent:  0 0 28px hsl(0 0% 92% / 0.35), 0 0 72px hsl(0 0% 100% / 0.2);
+  --shadow-elegant: 0 24px 60px -18px hsl(35 100% 30% / 0.5), 0 8px 24px -12px hsl(0 0% 2% / 0.85);
+}
+
+/* ================= Electric — neon lime + hot magenta on deep violet ================= */
+[data-theme="electric"] {
+  --background: 280 50% 5%;
+  --foreground: 120 60% 96%;
+  --card: 280 40% 9%;
+  --card-foreground: 120 60% 96%;
+  --popover: 280 42% 8%;
+  --popover-foreground: 120 60% 96%;
+  --primary: 120 100% 55%;
+  --primary-foreground: 280 60% 6%;
+  --primary-glow: 110 100% 62%;
+  --secondary: 280 35% 14%;
+  --secondary-foreground: 120 50% 92%;
+  --muted: 280 30% 12%;
+  --muted-foreground: 270 25% 72%;
+  --accent: 320 100% 60%;
+  --accent-foreground: 0 0% 100%;
+  --accent-glow: 310 100% 68%;
+  --destructive: 358 82% 62%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 280 35% 22%;
+  --input: 280 30% 18%;
+  --ring: 120 100% 55%;
+  --sidebar-background: 280 45% 7%;
+  --sidebar-foreground: 120 50% 92%;
+  --sidebar-primary: 120 100% 55%;
+  --sidebar-primary-foreground: 280 60% 6%;
+  --sidebar-accent: 280 32% 13%;
+  --sidebar-accent-foreground: 120 50% 92%;
+  --sidebar-border: 280 30% 20%;
+  --sidebar-ring: 120 100% 55%;
+  --chat-bubble-mine: 120 85% 42%;
+  --chat-bubble-theirs: 280 30% 16%;
+  --gradient-primary: linear-gradient(135deg, hsl(120 100% 55%), hsl(150 95% 58%) 50%, hsl(320 100% 60%));
+  --gradient-aurora: radial-gradient(ellipse 85% 65% at 12% 8%, hsl(120 100% 25% / 0.55), transparent 62%),
+                     radial-gradient(ellipse 70% 60% at 90% 92%, hsl(320 100% 28% / 0.5), transparent 62%),
+                     radial-gradient(ellipse 60% 55% at 78% 20%, hsl(280 90% 30% / 0.45), transparent 65%);
+  --gradient-obsidian: linear-gradient(160deg, hsl(280 50% 4%), hsl(290 45% 7%) 55%, hsl(280 50% 4%));
+  --glow-primary: 0 0 32px hsl(120 100% 55% / 0.55), 0 0 80px hsl(110 100% 62% / 0.3);
+  --glow-accent:  0 0 28px hsl(320 100% 60% / 0.5), 0 0 72px hsl(310 100% 68% / 0.28);
+  --shadow-elegant: 0 24px 60px -18px hsl(120 100% 25% / 0.5), 0 8px 24px -12px hsl(280 60% 3% / 0.8);
+}
+
+/* ================= Inferno — lava red + sulfur yellow on burnt charcoal ================= */
+[data-theme="inferno"] {
+  --background: 10 50% 5%;
+  --foreground: 40 60% 95%;
+  --card: 10 40% 9%;
+  --card-foreground: 40 60% 95%;
+  --popover: 10 42% 8%;
+  --popover-foreground: 40 60% 95%;
+  --primary: 10 100% 55%;
+  --primary-foreground: 0 0% 100%;
+  --primary-glow: 20 100% 62%;
+  --secondary: 10 32% 14%;
+  --secondary-foreground: 40 50% 92%;
+  --muted: 10 28% 12%;
+  --muted-foreground: 20 30% 72%;
+  --accent: 55 100% 55%;
+  --accent-foreground: 10 60% 6%;
+  --accent-glow: 50 100% 62%;
+  --destructive: 0 90% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 10 35% 22%;
+  --input: 10 28% 18%;
+  --ring: 10 100% 55%;
+  --sidebar-background: 10 45% 7%;
+  --sidebar-foreground: 40 50% 92%;
+  --sidebar-primary: 10 100% 55%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 10 30% 13%;
+  --sidebar-accent-foreground: 40 50% 92%;
+  --sidebar-border: 10 28% 20%;
+  --sidebar-ring: 10 100% 55%;
+  --chat-bubble-mine: 10 90% 45%;
+  --chat-bubble-theirs: 10 30% 16%;
+  --gradient-primary: linear-gradient(135deg, hsl(10 100% 55%), hsl(25 100% 58%) 50%, hsl(55 100% 55%));
+  --gradient-aurora: radial-gradient(ellipse 85% 65% at 12% 8%, hsl(10 100% 25% / 0.6), transparent 62%),
+                     radial-gradient(ellipse 70% 60% at 90% 92%, hsl(55 100% 25% / 0.5), transparent 62%),
+                     radial-gradient(ellipse 60% 55% at 78% 20%, hsl(30 100% 28% / 0.45), transparent 65%);
+  --gradient-obsidian: linear-gradient(160deg, hsl(10 50% 4%), hsl(15 45% 7%) 55%, hsl(10 50% 4%));
+  --glow-primary: 0 0 32px hsl(10 100% 55% / 0.55), 0 0 80px hsl(20 100% 62% / 0.3);
+  --glow-accent:  0 0 28px hsl(55 100% 55% / 0.5), 0 0 72px hsl(50 100% 62% / 0.28);
+  --shadow-elegant: 0 24px 60px -18px hsl(10 100% 30% / 0.55), 0 8px 24px -12px hsl(10 60% 3% / 0.8);
+}
+
+/* ================= Royal — imperial purple + gold on midnight ================= */
+[data-theme="royal"] {
+  --background: 270 50% 6%;
+  --foreground: 45 60% 95%;
+  --card: 270 40% 10%;
+  --card-foreground: 45 60% 95%;
+  --popover: 270 42% 9%;
+  --popover-foreground: 45 60% 95%;
+  --primary: 45 100% 55%;
+  --primary-foreground: 270 60% 6%;
+  --primary-glow: 50 100% 62%;
+  --secondary: 270 32% 14%;
+  --secondary-foreground: 45 50% 92%;
+  --muted: 270 28% 12%;
+  --muted-foreground: 260 25% 72%;
+  --accent: 270 80% 65%;
+  --accent-foreground: 0 0% 100%;
+  --accent-glow: 260 85% 72%;
+  --destructive: 358 82% 62%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 270 35% 22%;
+  --input: 270 28% 18%;
+  --ring: 45 100% 55%;
+  --sidebar-background: 270 45% 8%;
+  --sidebar-foreground: 45 50% 92%;
+  --sidebar-primary: 45 100% 55%;
+  --sidebar-primary-foreground: 270 60% 6%;
+  --sidebar-accent: 270 30% 13%;
+  --sidebar-accent-foreground: 45 50% 92%;
+  --sidebar-border: 270 28% 20%;
+  --sidebar-ring: 45 100% 55%;
+  --chat-bubble-mine: 45 90% 48%;
+  --chat-bubble-theirs: 270 30% 16%;
+  --gradient-primary: linear-gradient(135deg, hsl(45 100% 55%), hsl(270 80% 65%) 50%, hsl(300 75% 60%));
+  --gradient-aurora: radial-gradient(ellipse 85% 65% at 12% 8%, hsl(45 100% 25% / 0.5), transparent 62%),
+                     radial-gradient(ellipse 70% 60% at 90% 92%, hsl(270 80% 28% / 0.5), transparent 62%),
+                     radial-gradient(ellipse 60% 55% at 78% 20%, hsl(300 75% 28% / 0.45), transparent 65%);
+  --gradient-obsidian: linear-gradient(160deg, hsl(270 50% 5%), hsl(280 45% 8%) 55%, hsl(270 50% 5%));
+  --glow-primary: 0 0 32px hsl(45 100% 55% / 0.5), 0 0 80px hsl(50 100% 62% / 0.28);
+  --glow-accent:  0 0 28px hsl(270 80% 65% / 0.45), 0 0 72px hsl(260 85% 72% / 0.25);
+  --shadow-elegant: 0 24px 60px -18px hsl(45 100% 30% / 0.55), 0 8px 24px -12px hsl(270 60% 3% / 0.8);
+}
+
+/* ================= Midnight — deep navy + silver moonlight ================= */
+[data-theme="midnight"] {
+  --background: 220 45% 6%;
+  --foreground: 210 30% 94%;
+  --card: 220 38% 10%;
+  --card-foreground: 210 30% 94%;
+  --popover: 220 40% 9%;
+  --popover-foreground: 210 30% 94%;
+  --primary: 210 80% 68%;
+  --primary-foreground: 220 60% 6%;
+  --primary-glow: 200 85% 75%;
+  --secondary: 220 30% 14%;
+  --secondary-foreground: 210 25% 92%;
+  --muted: 220 25% 12%;
+  --muted-foreground: 220 20% 72%;
+  --accent: 260 70% 60%;
+  --accent-foreground: 0 0% 100%;
+  --accent-glow: 250 75% 68%;
+  --destructive: 358 82% 62%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 35% 22%;
+  --input: 220 28% 18%;
+  --ring: 210 80% 68%;
+  --sidebar-background: 220 40% 8%;
+  --sidebar-foreground: 210 25% 92%;
+  --sidebar-primary: 210 80% 68%;
+  --sidebar-primary-foreground: 220 60% 6%;
+  --sidebar-accent: 220 28% 13%;
+  --sidebar-accent-foreground: 210 25% 92%;
+  --sidebar-border: 220 28% 20%;
+  --sidebar-ring: 210 80% 68%;
+  --chat-bubble-mine: 210 70% 55%;
+  --chat-bubble-theirs: 220 28% 16%;
+  --gradient-primary: linear-gradient(135deg, hsl(210 80% 68%), hsl(230 75% 65%) 50%, hsl(260 70% 60%));
+  --gradient-aurora: radial-gradient(ellipse 85% 65% at 12% 8%, hsl(210 80% 28% / 0.5), transparent 62%),
+                     radial-gradient(ellipse 70% 60% at 90% 92%, hsl(260 70% 28% / 0.45), transparent 62%),
+                     radial-gradient(ellipse 60% 55% at 78% 20%, hsl(230 75% 30% / 0.42), transparent 65%);
+  --gradient-obsidian: linear-gradient(160deg, hsl(220 45% 5%), hsl(225 40% 8%) 55%, hsl(220 45% 5%));
+  --glow-primary: 0 0 32px hsl(210 80% 68% / 0.45), 0 0 80px hsl(200 85% 75% / 0.25);
+  --glow-accent:  0 0 28px hsl(260 70% 60% / 0.42), 0 0 72px hsl(250 75% 68% / 0.22);
+  --shadow-elegant: 0 24px 60px -18px hsl(210 80% 30% / 0.5), 0 8px 24px -12px hsl(220 60% 3% / 0.8);
+}
+
+/* New dark themes with animated aurora drift */
+[data-theme="oceanic"] body,
+[data-theme="electric"] body,
+[data-theme="inferno"] body,
+[data-theme="royal"] body,
+[data-theme="midnight"] body {
+  background-size: 200% 200%, 100% 100%;
+  animation: auroraDrift 24s ease-in-out infinite alternate;
+}
