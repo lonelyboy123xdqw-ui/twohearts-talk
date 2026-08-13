@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Images, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Images, PanelLeftClose, PanelLeftOpen, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
@@ -1034,6 +1034,19 @@ export default function ChatPage() {
     inputRef.current?.focus();
   };
 
+  const handleDelete = useCallback(async (msg: Message) => {
+    if (!user || msg.sender_id !== user.id) return;
+    if (!window.confirm("Unsend this message? It will be removed for both of you.")) return;
+
+    const { error } = await supabase.from("messages").delete().eq("id", msg.id);
+    if (error) {
+      toast({ title: "Couldn't unsend", description: error.message, variant: "destructive" });
+      return;
+    }
+    setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+    setReplyTo((prev) => (prev?.id === msg.id ? null : prev));
+  }, [user]);
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!newMsg.trim() && !selectedImage && !selectedFile && !selectedVideo) || !user) return;
@@ -1200,13 +1213,20 @@ export default function ChatPage() {
               </div>
             )}
             {mine && (
-              <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex flex-col gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => handleReply(msg)}
                   className="p-1 rounded-full hover:bg-muted"
                   title="Reply"
                 >
                   <Reply className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={() => handleDelete(msg)}
+                  className="p-1 rounded-full hover:bg-destructive/15"
+                  title="Unsend for everyone"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
                 </button>
               </div>
             )}
@@ -1287,7 +1307,7 @@ export default function ChatPage() {
               </div>
             </div>
             {!mine && (
-              <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex flex-col gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => handleReply(msg)}
                   className="p-1 rounded-full hover:bg-muted"
@@ -1312,7 +1332,7 @@ export default function ChatPage() {
         </div>
       );
     });
-  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id]);
+  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id, handleDelete]);
 
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
