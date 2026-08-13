@@ -1332,7 +1332,7 @@ export default function ChatPage() {
         </div>
       );
     });
-  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id]);
+  }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id, handleDelete]);
 
   const scrollToMessage = (msgId: string) => {
     const el = document.getElementById(`msg-${msgId}`);
