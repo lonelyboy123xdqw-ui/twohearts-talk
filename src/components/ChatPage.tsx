@@ -1034,6 +1034,19 @@ export default function ChatPage() {
     inputRef.current?.focus();
   };
 
+  const handleDelete = useCallback(async (msg: Message) => {
+    if (!user || msg.sender_id !== user.id) return;
+    if (!window.confirm("Unsend this message? It will be removed for both of you.")) return;
+
+    const { error } = await supabase.from("messages").delete().eq("id", msg.id);
+    if (error) {
+      toast({ title: "Couldn't unsend", description: error.message, variant: "destructive" });
+      return;
+    }
+    setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+    setReplyTo((prev) => (prev?.id === msg.id ? null : prev));
+  }, [user]);
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if ((!newMsg.trim() && !selectedImage && !selectedFile && !selectedVideo) || !user) return;
