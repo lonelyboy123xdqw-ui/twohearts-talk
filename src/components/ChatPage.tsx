@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Images, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Images, PanelLeftClose, PanelLeftOpen, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
@@ -1220,6 +1220,13 @@ export default function ChatPage() {
                   title="Reply"
                 >
                   <Reply className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+                <button
+                  onClick={() => handleDelete(msg)}
+                  className="p-1 rounded-full hover:bg-destructive/15"
+                  title="Unsend for everyone"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
                 </button>
               </div>
             )}
