@@ -1213,7 +1213,7 @@ export default function ChatPage() {
               </div>
             )}
             {mine && (
-              <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex flex-col gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => handleReply(msg)}
                   className="p-1 rounded-full hover:bg-muted"
@@ -1307,7 +1307,7 @@ export default function ChatPage() {
               </div>
             </div>
             {!mine && (
-              <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex flex-col gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => handleReply(msg)}
                   className="p-1 rounded-full hover:bg-muted"
