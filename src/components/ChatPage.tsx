@@ -4,11 +4,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Images, PanelLeftClose, PanelLeftOpen, Trash2 } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Images, PanelLeftClose, PanelLeftOpen, Trash2, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import WhatsNew, { openWhatsNew } from "@/components/WhatsNew";
 
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
@@ -1578,6 +1579,15 @@ export default function ChatPage() {
           <Button variant="ghost" size="icon" onClick={signOut}>
             <LogOut className="w-4 h-4" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={openWhatsNew}
+            title="What's new"
+            aria-label="What's new"
+          >
+            <Sparkles className="w-4 h-4 text-primary" />
+          </Button>
           <ThemeSwitcher />
         </div>
       </header>
@@ -1794,6 +1804,8 @@ export default function ChatPage() {
       </div>
 
       {/* Install app dialog */}
+      <WhatsNew />
+
       <Dialog open={installOpen} onOpenChange={setInstallOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
