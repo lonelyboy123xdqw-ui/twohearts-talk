@@ -4,12 +4,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Images, PanelLeftClose, PanelLeftOpen, Trash2, Sparkles } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Images, PanelLeftClose, PanelLeftOpen, Trash2, Sparkles, ArrowDown, Copy, Share2, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import WhatsNew, { openWhatsNew } from "@/components/WhatsNew";
+import SwipeRow from "@/components/SwipeRow";
+import { haptics, shareContent, shareFile } from "@/lib/ios";
 
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
