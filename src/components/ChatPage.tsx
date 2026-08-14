@@ -4,12 +4,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Images, PanelLeftClose, PanelLeftOpen, Trash2, Sparkles } from "lucide-react";
+import { Heart, LogOut, Send, ImagePlus, X, Check, CheckCheck, Reply, CornerDownRight, Download, Mic, Play, Pause, Wifi, WifiOff, Paperclip, FileText, Film, Eye, EyeOff, Bell, BellOff, Images, PanelLeftClose, PanelLeftOpen, Trash2, Sparkles, ArrowDown, Copy, Share2, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import WhatsNew, { openWhatsNew } from "@/components/WhatsNew";
+import SwipeRow from "@/components/SwipeRow";
+import { haptics, shareContent, shareFile } from "@/lib/ios";
 
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
@@ -1054,9 +1056,38 @@ export default function ChatPage() {
   };
 
   const handleReply = (msg: Message) => {
+    haptics.tap();
     setReplyTo(msg);
     inputRef.current?.focus();
   };
+
+  // ── iOS-style extras: action sheet, pull-to-refresh, jump-to-latest ──
+  const [actionMsg, setActionMsg] = useState<Message | null>(null);
+  const [showJump, setShowJump] = useState(false);
+  const [pullDist, setPullDist] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullStartY = useRef<number | null>(null);
+
+  const copyMessage = useCallback(async (msg: Message) => {
+    const text = msg.content || msg.image_url || msg.video_url || msg.file_url || msg.audio_url || "";
+    try {
+      await navigator.clipboard.writeText(text);
+      haptics.success();
+      toast({ title: "Copied" });
+    } catch {
+      toast({ title: "Couldn't copy", variant: "destructive" });
+    }
+  }, []);
+
+  const shareMessage = useCallback(async (msg: Message) => {
+    haptics.tap();
+    const media = msg.image_url || msg.video_url || msg.audio_url || msg.file_url;
+    if (media) {
+      await shareFile(media, msg.file_name || media.split("/").pop() || "shared");
+    } else {
+      await shareContent({ text: msg.content || "", title: "Message" });
+    }
+  }, []);
 
   const handleDelete = useCallback(async (msg: Message) => {
     if (!user || msg.sender_id !== user.id) return;
@@ -1139,6 +1170,7 @@ export default function ChatPage() {
       clearVideo();
       fetchMessages();
       inputRef.current?.focus();
+      haptics.success();
     } catch (err) {
       toast({
         title: "Message failed to send",
@@ -1212,8 +1244,8 @@ export default function ChatPage() {
       const mine = msg.sender_id === user?.id;
       const repliedMsg = msg.reply_to_id ? messagesById.get(msg.reply_to_id) || null : null;
       return (
+        <SwipeRow key={msg.id} onReply={() => handleReply(msg)} onLongPress={() => setActionMsg(msg)}>
         <div
-          key={msg.id}
           id={`msg-${msg.id}`}
           className={`group flex ${mine ? "justify-end" : "justify-start"} rounded-2xl`}
         >
@@ -1354,6 +1386,7 @@ export default function ChatPage() {
             )}
           </div>
         </div>
+        </SwipeRow>
       );
     });
   }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id, handleDelete]);
@@ -1593,7 +1626,44 @@ export default function ChatPage() {
       </header>
 
       {/* Messages */}
-      <div ref={messagesContainerRef} className="chat-scroll flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide overscroll-contain">
+      <div
+        ref={messagesContainerRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          setShowJump(el.scrollHeight - el.scrollTop - el.clientHeight > 400);
+        }}
+        onTouchStart={(e) => {
+          const el = e.currentTarget;
+          pullStartY.current = el.scrollTop <= 0 ? e.touches[0].clientY : null;
+        }}
+        onTouchMove={(e) => {
+          if (pullStartY.current == null || refreshing) return;
+          const d = e.touches[0].clientY - pullStartY.current;
+          if (d > 0) setPullDist(Math.min(d * 0.5, 70));
+        }}
+        onTouchEnd={async () => {
+          const shouldRefresh = pullDist > 48 && !refreshing;
+          pullStartY.current = null;
+          setPullDist(0);
+          if (!shouldRefresh) return;
+          haptics.impact();
+          setRefreshing(true);
+          try {
+            await fetchMessages();
+          } finally {
+            setRefreshing(false);
+          }
+        }}
+        className="chat-scroll flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide overscroll-contain"
+      >
+        {(pullDist > 0 || refreshing) && (
+          <div className="flex justify-center" style={{ height: refreshing ? 28 : pullDist }}>
+            <Loader2
+              className={`w-5 h-5 text-primary ${refreshing ? "animate-spin" : ""}`}
+              style={{ opacity: refreshing ? 1 : pullDist / 48, transform: `rotate(${pullDist * 4}deg)` }}
+            />
+          </div>
+        )}
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
             <Heart className="w-10 h-10 mb-2 text-primary/30" />
@@ -1625,6 +1695,73 @@ export default function ChatPage() {
         )}
         <div ref={bottomRef} />
       </div>
+
+      {/* Jump to latest */}
+      {showJump && (
+        <button
+          type="button"
+          onClick={() => {
+            haptics.tap();
+            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+          }}
+          className="absolute right-4 bottom-24 z-20 h-11 w-11 rounded-full bg-card/90 border border-border shadow-lg backdrop-blur flex items-center justify-center active:scale-95 transition-transform"
+          aria-label="Jump to latest messages"
+        >
+          <ArrowDown className="w-5 h-5 text-primary" />
+        </button>
+      )}
+
+      {/* Long-press action sheet (iOS style) */}
+      <Dialog open={!!actionMsg} onOpenChange={(o) => !o && setActionMsg(null)}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">Message actions</DialogTitle>
+            <DialogDescription className="line-clamp-2 text-xs">
+              {actionMsg?.content || (actionMsg?.image_url ? "📷 Photo" : actionMsg?.video_url ? "🎬 Video" : actionMsg?.audio_url ? "🎙 Voice note" : actionMsg?.file_name || "Attachment")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-1">
+            <button
+              className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted active:scale-[0.99] transition text-left"
+              onClick={() => { if (actionMsg) handleReply(actionMsg); setActionMsg(null); }}
+            >
+              <Reply className="w-4 h-4 text-primary" /> <span className="text-sm">Reply</span>
+            </button>
+            <button
+              className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted active:scale-[0.99] transition text-left"
+              onClick={() => { if (actionMsg) copyMessage(actionMsg); setActionMsg(null); }}
+            >
+              <Copy className="w-4 h-4 text-primary" /> <span className="text-sm">Copy</span>
+            </button>
+            <button
+              className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted active:scale-[0.99] transition text-left"
+              onClick={() => { if (actionMsg) shareMessage(actionMsg); setActionMsg(null); }}
+            >
+              <Share2 className="w-4 h-4 text-primary" /> <span className="text-sm">Share…</span>
+            </button>
+            {(actionMsg?.image_url || actionMsg?.video_url || actionMsg?.file_url || actionMsg?.audio_url) && (
+              <button
+                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted active:scale-[0.99] transition text-left"
+                onClick={() => {
+                  const url = actionMsg.image_url || actionMsg.video_url || actionMsg.file_url || actionMsg.audio_url;
+                  if (url) downloadUrl(url, actionMsg.file_name || url.split("/").pop() || "download");
+                  setActionMsg(null);
+                }}
+              >
+                <Download className="w-4 h-4 text-primary" /> <span className="text-sm">Save</span>
+              </button>
+            )}
+            {actionMsg?.sender_id === user?.id && (
+              <button
+                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-destructive/10 active:scale-[0.99] transition text-left"
+                onClick={() => { const m = actionMsg; setActionMsg(null); if (m) { haptics.warning(); handleDelete(m); } }}
+              >
+                <Trash2 className="w-4 h-4 text-destructive" /> <span className="text-sm text-destructive">Unsend</span>
+              </button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Reply preview */}
       {replyTo && (
