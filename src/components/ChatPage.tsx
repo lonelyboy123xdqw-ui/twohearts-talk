@@ -1695,6 +1695,73 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
+      {/* Jump to latest */}
+      {showJump && (
+        <button
+          type="button"
+          onClick={() => {
+            haptics.tap();
+            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+          }}
+          className="absolute right-4 bottom-24 z-20 h-11 w-11 rounded-full bg-card/90 border border-border shadow-lg backdrop-blur flex items-center justify-center active:scale-95 transition-transform"
+          aria-label="Jump to latest messages"
+        >
+          <ArrowDown className="w-5 h-5 text-primary" />
+        </button>
+      )}
+
+      {/* Long-press action sheet (iOS style) */}
+      <Dialog open={!!actionMsg} onOpenChange={(o) => !o && setActionMsg(null)}>
+        <DialogContent className="sm:max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">Message actions</DialogTitle>
+            <DialogDescription className="line-clamp-2 text-xs">
+              {actionMsg?.content || (actionMsg?.image_url ? "📷 Photo" : actionMsg?.video_url ? "🎬 Video" : actionMsg?.audio_url ? "🎙 Voice note" : actionMsg?.file_name || "Attachment")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-1">
+            <button
+              className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted active:scale-[0.99] transition text-left"
+              onClick={() => { if (actionMsg) handleReply(actionMsg); setActionMsg(null); }}
+            >
+              <Reply className="w-4 h-4 text-primary" /> <span className="text-sm">Reply</span>
+            </button>
+            <button
+              className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted active:scale-[0.99] transition text-left"
+              onClick={() => { if (actionMsg) copyMessage(actionMsg); setActionMsg(null); }}
+            >
+              <Copy className="w-4 h-4 text-primary" /> <span className="text-sm">Copy</span>
+            </button>
+            <button
+              className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted active:scale-[0.99] transition text-left"
+              onClick={() => { if (actionMsg) shareMessage(actionMsg); setActionMsg(null); }}
+            >
+              <Share2 className="w-4 h-4 text-primary" /> <span className="text-sm">Share…</span>
+            </button>
+            {(actionMsg?.image_url || actionMsg?.video_url || actionMsg?.file_url || actionMsg?.audio_url) && (
+              <button
+                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-muted active:scale-[0.99] transition text-left"
+                onClick={() => {
+                  const url = actionMsg.image_url || actionMsg.video_url || actionMsg.file_url || actionMsg.audio_url;
+                  if (url) downloadUrl(url, actionMsg.file_name || url.split("/").pop() || "download");
+                  setActionMsg(null);
+                }}
+              >
+                <Download className="w-4 h-4 text-primary" /> <span className="text-sm">Save</span>
+              </button>
+            )}
+            {actionMsg?.sender_id === user?.id && (
+              <button
+                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-destructive/10 active:scale-[0.99] transition text-left"
+                onClick={() => { const m = actionMsg; setActionMsg(null); if (m) { haptics.warning(); handleDelete(m); } }}
+              >
+                <Trash2 className="w-4 h-4 text-destructive" /> <span className="text-sm text-destructive">Unsend</span>
+              </button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Reply preview */}
       {replyTo && (
         <div className="px-4 py-2 border-t border-border bg-card flex items-center gap-2">
