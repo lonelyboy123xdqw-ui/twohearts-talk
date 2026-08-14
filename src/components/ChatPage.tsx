@@ -1170,6 +1170,7 @@ export default function ChatPage() {
       clearVideo();
       fetchMessages();
       inputRef.current?.focus();
+      haptics.success();
     } catch (err) {
       toast({
         title: "Message failed to send",
