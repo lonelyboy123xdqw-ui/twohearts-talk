@@ -1671,7 +1671,7 @@ export default function ChatPage() {
 
       {/* Recording indicator */}
       {isRecording && (
-        <div className="px-4 py-2 border-t border-border bg-card flex items-center gap-3">
+        <div className="safe-bottom px-4 py-2 border-t border-border bg-card flex items-center gap-3">
           <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
           <span className="text-sm text-destructive font-medium flex-1">
             Recording... {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")}
