@@ -972,6 +972,10 @@ body {
     animation: none !important;
   }
 
+  body {
+    animation: none !important;
+  }
+
   .media-card:hover,
   .send-btn:hover > svg {
     transform: none;
