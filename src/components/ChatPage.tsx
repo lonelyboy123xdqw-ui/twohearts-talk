@@ -849,9 +849,32 @@ export default function ChatPage() {
       isAtBottomRef.current =
         el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
     };
-    el.addEventListener("scroll", onScroll);
+    el.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // iOS keyboard: keep the composer + latest message in view when the
+  // visual viewport shrinks (Safari doesn't resize the layout viewport).
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let raf = 0;
+    const onResize = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        document.documentElement.style.setProperty("--vvh", `${vv.height}px`);
+        if (isAtBottomRef.current) bottomRef.current?.scrollIntoView({ behavior: "auto" });
+      });
+    };
+    onResize();
+    vv.addEventListener("resize", onResize);
+    vv.addEventListener("scroll", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onResize);
+    };
   }, []);
 
   useEffect(() => {
