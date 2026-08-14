@@ -1804,6 +1804,8 @@ export default function ChatPage() {
       </div>
 
       {/* Install app dialog */}
+      <WhatsNew />
+
       <Dialog open={installOpen} onOpenChange={setInstallOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
