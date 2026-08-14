@@ -1625,7 +1625,44 @@ export default function ChatPage() {
       </header>
 
       {/* Messages */}
-      <div ref={messagesContainerRef} className="chat-scroll flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide overscroll-contain">
+      <div
+        ref={messagesContainerRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          setShowJump(el.scrollHeight - el.scrollTop - el.clientHeight > 400);
+        }}
+        onTouchStart={(e) => {
+          const el = e.currentTarget;
+          pullStartY.current = el.scrollTop <= 0 ? e.touches[0].clientY : null;
+        }}
+        onTouchMove={(e) => {
+          if (pullStartY.current == null || refreshing) return;
+          const d = e.touches[0].clientY - pullStartY.current;
+          if (d > 0) setPullDist(Math.min(d * 0.5, 70));
+        }}
+        onTouchEnd={async () => {
+          const shouldRefresh = pullDist > 48 && !refreshing;
+          pullStartY.current = null;
+          setPullDist(0);
+          if (!shouldRefresh) return;
+          haptics.impact();
+          setRefreshing(true);
+          try {
+            await fetchMessages();
+          } finally {
+            setRefreshing(false);
+          }
+        }}
+        className="chat-scroll flex-1 overflow-y-auto px-2 sm:px-4 py-3 sm:py-4 space-y-2.5 sm:space-y-3 scrollbar-hide overscroll-contain"
+      >
+        {(pullDist > 0 || refreshing) && (
+          <div className="flex justify-center" style={{ height: refreshing ? 28 : pullDist }}>
+            <Loader2
+              className={`w-5 h-5 text-primary ${refreshing ? "animate-spin" : ""}`}
+              style={{ opacity: refreshing ? 1 : pullDist / 48, transform: `rotate(${pullDist * 4}deg)` }}
+            />
+          </div>
+        )}
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm">
             <Heart className="w-10 h-10 mb-2 text-primary/30" />
