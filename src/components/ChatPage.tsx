@@ -1367,7 +1367,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className={`relative flex h-[100dvh] w-full ${mediaPanelOpen ? "flex-col md:flex-row" : "flex-col"}`}>
+    <div className={`app-shell relative flex w-full ${mediaPanelOpen ? "flex-col md:flex-row" : "flex-col"}`}>
       {/* Media side panel — left on PC, bottom on mobile */}
       {mediaPanelOpen && (
         <aside className="order-2 md:order-1 h-1/2 md:h-full md:w-[340px] lg:w-[380px] shrink-0 border-t md:border-t-0 md:border-r border-border/60 bg-card/40 backdrop-blur-xl flex flex-col min-h-0">
@@ -1420,7 +1420,7 @@ export default function ChatPage() {
       {/* Chat column */}
       <div className={`order-1 md:order-2 flex-1 min-w-0 min-h-0 flex flex-col md:h-full ${mediaPanelOpen ? "h-1/2" : "h-full"}`}>
       {/* Header */}
-      <header className="header-enter flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
+      <header className="header-enter safe-top flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <div className="relative shrink-0">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
