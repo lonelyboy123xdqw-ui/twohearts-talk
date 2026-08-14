@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "@/hooks/use-toast";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import WhatsNew, { openWhatsNew } from "@/components/WhatsNew";
 
 
 const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
@@ -1577,6 +1578,15 @@ export default function ChatPage() {
           </Button>
           <Button variant="ghost" size="icon" onClick={signOut}>
             <LogOut className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={openWhatsNew}
+            title="What's new"
+            aria-label="What's new"
+          >
+            <Sparkles className="w-4 h-4 text-primary" />
           </Button>
           <ThemeSwitcher />
         </div>
