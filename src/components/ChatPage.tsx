@@ -1056,9 +1056,38 @@ export default function ChatPage() {
   };
 
   const handleReply = (msg: Message) => {
+    haptics.tap();
     setReplyTo(msg);
     inputRef.current?.focus();
   };
+
+  // ── iOS-style extras: action sheet, pull-to-refresh, jump-to-latest ──
+  const [actionMsg, setActionMsg] = useState<Message | null>(null);
+  const [showJump, setShowJump] = useState(false);
+  const [pullDist, setPullDist] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullStartY = useRef<number | null>(null);
+
+  const copyMessage = useCallback(async (msg: Message) => {
+    const text = msg.content || msg.image_url || msg.video_url || msg.file_url || msg.audio_url || "";
+    try {
+      await navigator.clipboard.writeText(text);
+      haptics.success();
+      toast({ title: "Copied" });
+    } catch {
+      toast({ title: "Couldn't copy", variant: "destructive" });
+    }
+  }, []);
+
+  const shareMessage = useCallback(async (msg: Message) => {
+    haptics.tap();
+    const media = msg.image_url || msg.video_url || msg.audio_url || msg.file_url;
+    if (media) {
+      await shareFile(media, msg.file_name || media.split("/").pop() || "shared");
+    } else {
+      await shareContent({ text: msg.content || "", title: "Message" });
+    }
+  }, []);
 
   const handleDelete = useCallback(async (msg: Message) => {
     if (!user || msg.sender_id !== user.id) return;
