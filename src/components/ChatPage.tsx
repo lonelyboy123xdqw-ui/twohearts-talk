@@ -1243,8 +1243,8 @@ export default function ChatPage() {
       const mine = msg.sender_id === user?.id;
       const repliedMsg = msg.reply_to_id ? messagesById.get(msg.reply_to_id) || null : null;
       return (
+        <SwipeRow key={msg.id} onReply={() => handleReply(msg)} onLongPress={() => setActionMsg(msg)}>
         <div
-          key={msg.id}
           id={`msg-${msg.id}`}
           className={`group flex ${mine ? "justify-end" : "justify-start"} rounded-2xl`}
         >
@@ -1385,6 +1385,7 @@ export default function ChatPage() {
             )}
           </div>
         </div>
+        </SwipeRow>
       );
     });
   }, [visibleMessages, messagesById, profiles, presenceMap, partnerOnline, user?.id, handleDelete]);
