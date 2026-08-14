@@ -1689,7 +1689,7 @@ export default function ChatPage() {
       {!isRecording && (
         <form
           onSubmit={handleSend}
-          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 border-t border-border bg-card"
+          className="composer safe-bottom flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 border-t border-border bg-card"
         >
           <input
             type="file"
@@ -1763,8 +1763,11 @@ export default function ChatPage() {
               }
             }}
             placeholder="Type a message..."
-            className="flex-1 bg-secondary border-border"
-            autoFocus
+            className="flex-1 bg-secondary border-border text-base sm:text-sm h-11 sm:h-10 rounded-full px-4"
+            enterKeyHint="send"
+            autoComplete="off"
+            autoCapitalize="sentences"
+            autoCorrect="on"
           />
           {newMsg.trim() || selectedImage || selectedFile || selectedVideo ? (
             <Button
