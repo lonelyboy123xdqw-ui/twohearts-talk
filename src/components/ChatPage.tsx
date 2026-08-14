@@ -849,9 +849,32 @@ export default function ChatPage() {
       isAtBottomRef.current =
         el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
     };
-    el.addEventListener("scroll", onScroll);
+    el.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // iOS keyboard: keep the composer + latest message in view when the
+  // visual viewport shrinks (Safari doesn't resize the layout viewport).
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let raf = 0;
+    const onResize = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        document.documentElement.style.setProperty("--vvh", `${vv.height}px`);
+        if (isAtBottomRef.current) bottomRef.current?.scrollIntoView({ behavior: "auto" });
+      });
+    };
+    onResize();
+    vv.addEventListener("resize", onResize);
+    vv.addEventListener("scroll", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onResize);
+    };
   }, []);
 
   useEffect(() => {
@@ -1344,7 +1367,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className={`relative flex h-[100dvh] w-full ${mediaPanelOpen ? "flex-col md:flex-row" : "flex-col"}`}>
+    <div className={`app-shell relative flex w-full ${mediaPanelOpen ? "flex-col md:flex-row" : "flex-col"}`}>
       {/* Media side panel — left on PC, bottom on mobile */}
       {mediaPanelOpen && (
         <aside className="order-2 md:order-1 h-1/2 md:h-full md:w-[340px] lg:w-[380px] shrink-0 border-t md:border-t-0 md:border-r border-border/60 bg-card/40 backdrop-blur-xl flex flex-col min-h-0">
@@ -1397,7 +1420,7 @@ export default function ChatPage() {
       {/* Chat column */}
       <div className={`order-1 md:order-2 flex-1 min-w-0 min-h-0 flex flex-col md:h-full ${mediaPanelOpen ? "h-1/2" : "h-full"}`}>
       {/* Header */}
-      <header className="header-enter flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
+      <header className="header-enter safe-top flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/60 bg-card/70 backdrop-blur-xl supports-[backdrop-filter]:bg-card/50 sticky top-0 z-20">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <div className="relative shrink-0">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
@@ -1648,7 +1671,7 @@ export default function ChatPage() {
 
       {/* Recording indicator */}
       {isRecording && (
-        <div className="px-4 py-2 border-t border-border bg-card flex items-center gap-3">
+        <div className="safe-bottom px-4 py-2 border-t border-border bg-card flex items-center gap-3">
           <span className="w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
           <span className="text-sm text-destructive font-medium flex-1">
             Recording... {Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, "0")}
@@ -1666,7 +1689,7 @@ export default function ChatPage() {
       {!isRecording && (
         <form
           onSubmit={handleSend}
-          className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 border-t border-border bg-card"
+          className="composer safe-bottom flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 sm:py-3 border-t border-border bg-card"
         >
           <input
             type="file"
@@ -1740,8 +1763,11 @@ export default function ChatPage() {
               }
             }}
             placeholder="Type a message..."
-            className="flex-1 bg-secondary border-border"
-            autoFocus
+            className="flex-1 bg-secondary border-border text-base sm:text-sm h-11 sm:h-10 rounded-full px-4"
+            enterKeyHint="send"
+            autoComplete="off"
+            autoCapitalize="sentences"
+            autoCorrect="on"
           />
           {newMsg.trim() || selectedImage || selectedFile || selectedVideo ? (
             <Button
